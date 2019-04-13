@@ -8,16 +8,15 @@ namespace eAmuseCore.Crypto
     public static class RC4
     {
         private static readonly byte[] konamiCode = 
-            new byte[]{ 105, 215, 70, 39, 217, 133, 238, 33, 135,
-                        22, 21, 112, 208, 141, 147, 177, 36, 85,
-                        3, 91, 109, 240, 216, 32, 93, 245 };
+            new byte[]{ 0x69, 0xd7, 0x46, 0x27, 0xd9, 0x85, 0xee, 0x21, 0x87, 0x16, 0x15, 0x70, 0xd0,
+                        0x8d, 0x93, 0xb1, 0x24, 0x55, 0x03, 0x5b, 0x6d, 0xf0, 0xd8, 0x20, 0x5d, 0xf5 };
 
         public static IEnumerable<byte> ApplyEAmuseInfo(string info, IEnumerable<byte> data)
         {
             if (!info.StartsWith("1-") || info.Count(c => c == '-') != 3 || info.Length != 15)
                 throw new ArgumentException("Unknown E-Amuse-Info format.", "info");
             info = info.Substring(2).Replace("-", "");
-            byte[] key = Enumerable.Range(0, info.Length / 2).Select(i => Convert.ToByte(info.Substring(i * 2, 2))).ToArray();
+            byte[] key = Enumerable.Range(0, info.Length / 2).Select(i => Convert.ToByte(info.Substring(i * 2, 2), 16)).ToArray();
             return ApplyEAmuse(key, data);
         }
 
@@ -29,7 +28,7 @@ namespace eAmuseCore.Crypto
             using (MD5 md5 = MD5.Create())
             {
                 byte[] realKey = md5.ComputeHash(key.Concat(konamiCode).ToArray());
-                return Apply(realKey, data);
+                return EncryptOutput(realKey, data);
             }
         }
 
@@ -40,11 +39,11 @@ namespace eAmuseCore.Crypto
 
         private static byte[] EncryptInitalize(byte[] key)
         {
-            byte[] s = Enumerable.Range(0, 256).Select(i => (byte)i).ToArray();
+            byte[] s = Enumerable.Range(0, 0x100).Select(i => (byte)i).ToArray();
 
-            for (uint i = 0, j = 0; i < 256; i++)
+            for (uint i = 0, j = 0; i < 0x100; i++)
             {
-                j = (j + key[i % key.Length] + s[i]) & 255;
+                j = (j + key[i % key.Length] + s[i]) & 0xff;
                 Swap(s, i, j);
             }
 
@@ -58,15 +57,15 @@ namespace eAmuseCore.Crypto
             uint i = 0;
             uint j = 0;
 
-            return data.Select(b =>
+            foreach (byte b in data)
             {
-                i = (i + 1) & 255;
-                j = (j + s[i]) & 255;
+                i = (i + 1) & 0xff;
+                j = (j + s[i]) & 0xff;
 
                 Swap(s, i, j);
 
-                return (byte)(b ^ s[(s[i] + s[j]) & 255]);
-            });
+                yield return (byte)(b ^ s[(s[i] + s[j]) & 0xff]);
+            };
         }
 
         private static void Swap(byte[] s, uint i, uint j)
