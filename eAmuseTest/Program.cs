@@ -5,6 +5,7 @@ using System.Collections.Generic;
 
 using eAmuseCore.Crypto;
 using eAmuseCore.Compression;
+using System.Collections;
 
 namespace eAmuseTest
 {
@@ -35,17 +36,26 @@ namespace eAmuseTest
                 0x4b, 0x66, 0x07, 0xc0, 0xd0, 0xb3
             };
 
-            var decryptedData = RC4.ApplyEAmuseInfo(eamuse_info, data);
+            var decryptedData = RC4.ApplyEAmuseInfo(eamuse_info, data).ToArray();
 
-            if (compress == "lz77")
-            {
-                var rawData = LZ77.Decompress(decryptedData);
-                Console.WriteLine(BytesToString(rawData));
-            }
-            else
-            {
-                Console.WriteLine(BytesToString(decryptedData));
-            }
+            Console.WriteLine(BytesToString(decryptedData));
+
+            Console.WriteLine("Ok go");
+
+            var rawData = LZ77.Decompress(decryptedData).ToArray();
+            Console.WriteLine(BytesToString(rawData));
+
+            Console.WriteLine("Ok go again");
+
+            var recompressed = LZ77.Compress(rawData).ToArray();
+
+            Console.WriteLine(BytesToString(recompressed));
+
+            Console.WriteLine("Ok ungo");
+
+            var redecompressed = LZ77.Decompress(recompressed).ToArray();
+
+            Console.WriteLine(BytesToString(redecompressed));
         }
 
         private static string BytesToString(IEnumerable<byte> bytes)
