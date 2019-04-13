@@ -13,7 +13,7 @@ namespace eAmuseCore.Crypto
 
         public static IEnumerable<byte> ApplyEAmuseInfo(string info, IEnumerable<byte> data)
         {
-            if (!info.StartsWith("1-") || info.Count(c => c == '-') != 3 || info.Length != 15)
+            if (!info.StartsWith("1-") || info.Count(c => c == '-') != 2 || info.Length != 15)
                 throw new ArgumentException("Unknown E-Amuse-Info format.", "info");
             info = info.Substring(2).Replace("-", "");
             byte[] key = Enumerable.Range(0, info.Length / 2).Select(i => Convert.ToByte(info.Substring(i * 2, 2), 16)).ToArray();
