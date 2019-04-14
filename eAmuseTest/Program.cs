@@ -43,19 +43,6 @@ namespace eAmuseTest
             Console.WriteLine("Ok go");
 
             var rawData = LZ77.Decompress(decryptedData).ToArray();
-            Console.WriteLine(BytesToString(rawData));
-
-            Console.WriteLine("Ok go again");
-
-            var recompressed = LZ77.Compress(rawData).ToArray();
-
-            Console.WriteLine(BytesToString(recompressed));
-
-            Console.WriteLine("Ok ungo");
-
-            var redecompressed = LZ77.Decompress(recompressed).ToArray();
-
-            Console.WriteLine(BytesToString(redecompressed));
         }
 
         private static string BytesToString(IEnumerable<byte> bytes)

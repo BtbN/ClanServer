@@ -2,16 +2,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace eAmuseCore.Compression
 {
-    class RingBuffer
+    public class RepeatingRingBuffer
     {
         private byte[] buf;
         private int pos;
         private int mod;
 
-        public RingBuffer(int size)
+        public RepeatingRingBuffer(int size)
         {
             if (size == 0 || (size & (size - 1)) != 0)
                 throw new ArgumentException("Size is not a power of two.", "size");
@@ -40,7 +41,12 @@ namespace eAmuseCore.Compression
         public IEnumerable<byte> Slice(int start, int end)
         {
             for (int i = start; i < end; ++i)
-                yield return this[i];
+            {
+                if (start < 0 && i >= 0)
+                    yield return this[start + (i % start)];
+                else
+                    yield return this[i];
+            }
         }
     }
 
@@ -50,7 +56,7 @@ namespace eAmuseCore.Compression
 
         public static IEnumerable<byte> Decompress(IEnumerable<byte> data)
         {
-            RingBuffer buffer = new RingBuffer(0x1000);
+            RepeatingRingBuffer buffer = new RepeatingRingBuffer(0x1000);
             int state = 0;
 
             using (var iter = data.GetEnumerator())
@@ -100,7 +106,7 @@ namespace eAmuseCore.Compression
             public int length;
         }
 
-        private static Match findLongestMatch(RingBuffer data, int prefetchLength, int windowSize)
+        private static Match findLongestMatch(RepeatingRingBuffer data, int prefetchLength, int windowSize, int minLength)
         {
             Match res = new Match
             {
@@ -108,32 +114,23 @@ namespace eAmuseCore.Compression
                 length = -1
             };
 
-            for (int j = 2 - prefetchLength; j < 0; ++j)
+            minLength = Math.Min(1, minLength);
+
+            for (int j = 0; j >= minLength - prefetchLength; --j)
             {
                 var sub = data.Slice(-prefetchLength, j);
                 int subLength = j + prefetchLength;
-                if (subLength <= res.length)
-                    continue;
 
-                for (int i = -prefetchLength - windowSize; i < -prefetchLength; i++)
+                for (int distance = 1; distance < windowSize - prefetchLength; ++distance)
                 {
-                    var slice = Enumerable.Empty<byte>();
-                    int dist = -prefetchLength - i;
+                    int start = -prefetchLength - distance;
+                    var match = data.Slice(start, start + subLength);
 
-                    var repSlice = data.Slice(i, -prefetchLength);
-                    for (int reps = subLength / dist; reps > 0; --reps)
-                        slice = slice.Concat(repSlice);
-
-                    var match = slice.Concat(data.Slice(i, i + (subLength % dist)));
-
-                    if (match.ToArray() == sub)
+                    if (match.SequenceEqual(sub))
                     {
-                        res.distance = dist;
+                        res.distance = distance;
                         res.length = subLength;
-                        Console.WriteLine("match: " + res.distance + ":" + res.length);
-                        var a = match.ToArray();
-                        if (a != sub)
-                            Console.WriteLine("FALSE!");
+                        return res;
                     }
                 }
             }
@@ -141,7 +138,7 @@ namespace eAmuseCore.Compression
             return res;
         }
 
-        public static IEnumerable<byte> Compress(IEnumerable<byte> data, int windowSize = 32, int lookAhead = 0xf + minLength)
+        public static IEnumerable<byte> Compress(IEnumerable<byte> data, int windowSize = 256, int lookAhead = 0xf + minLength)
         {
             if (lookAhead < 3 || lookAhead > 0xf + minLength)
                 throw new ArgumentException("lookAhead out of range", "lookAhead");
@@ -150,10 +147,10 @@ namespace eAmuseCore.Compression
             if ((windowSize & (windowSize - 1)) != 0)
                 throw new ArgumentException("windowSize is not a power of two.", "windowSize");
 
-            windowSize = Math.Min(windowSize, 0xfff);
+            windowSize = Math.Min(windowSize, 0x1000);
             int prefetchLenght = 0;
 
-            RingBuffer inputQueue = new RingBuffer(windowSize);
+            RepeatingRingBuffer inputQueue = new RepeatingRingBuffer(windowSize);
             Queue<byte> outputQueue = new Queue<byte>();
             Queue<byte> state = new Queue<byte>();
             bool finished = false;
@@ -162,7 +159,7 @@ namespace eAmuseCore.Compression
             {
                 while (true)
                 {
-                    while (prefetchLenght <= lookAhead && iter.MoveNext())
+                    while (prefetchLenght < lookAhead && iter.MoveNext())
                     {
                         inputQueue.Append(iter.Current);
                         prefetchLenght += 1;
@@ -177,14 +174,14 @@ namespace eAmuseCore.Compression
                     }
                     else
                     {
-                        Match match = findLongestMatch(inputQueue, prefetchLenght, windowSize);
+                        Match match = findLongestMatch(inputQueue, prefetchLenght, windowSize, minLength);
                         if (match.length >= minLength && match.distance > 0)
                         {
                             prefetchLenght -= match.length;
                             match.length -= minLength;
 
-                            if (match.length > 0xf || match.distance > 0xfff)
-                                throw new Exception("INTERNAL ERROR: found match is too long!");
+                            if (match.length > 0xf || match.distance > 0xfff || prefetchLenght < 0)
+                                throw new Exception("INTERNAL ERROR: found match is invalid!");
 
                             state.Enqueue(0);
                             outputQueue.Enqueue((byte)(match.distance >> 4));
@@ -203,8 +200,6 @@ namespace eAmuseCore.Compression
                         yield return (byte)state.Select((b, i) => b << i).Sum();
                         foreach (byte b in outputQueue)
                             yield return b;
-
-                        Console.WriteLine("state: " + state.Select((b, i) => b << i).Sum());
 
                         state.Clear();
                         outputQueue.Clear();
