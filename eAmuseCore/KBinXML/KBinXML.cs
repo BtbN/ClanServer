@@ -116,8 +116,7 @@ namespace eAmuseCore.KBinXML
 
             XElement node = doc.Root;
 
-            bool nodesLeft = true;
-            while (nodesLeft && nodeBuf.Any())
+            while (nodeBuf.Any())
             {
                 nodeBuf = nodeBuf.SkipWhile(b => b == 0);
 
@@ -149,6 +148,14 @@ namespace eAmuseCore.KBinXML
                 }
 
                 Console.WriteLine("Name: " + name);
+
+                bool skip = true;
+
+                if (nodeType == XmlTypes.EndSection.type)
+                    break;
+
+                if (skip)
+                    continue;
             }
         }
     }
