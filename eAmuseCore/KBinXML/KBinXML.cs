@@ -89,8 +89,6 @@ namespace eAmuseCore.KBinXML
             }
             input = input.Skip(1);
 
-            Console.WriteLine("Compressed: " + compressed);
-
             byte encodingSig = input.FirstU8();
             input = input.Skip(1);
 
@@ -111,6 +109,9 @@ namespace eAmuseCore.KBinXML
 
         private void ParseNodes(IEnumerable<byte> nodeBuf, IEnumerable<byte> dataBuf, bool compressed)
         {
+            IEnumerable<byte> dataByteBuf = Enumerable.Empty<byte>();
+            IEnumerable<byte> dataWordBuf = Enumerable.Empty<byte>();
+
             uint dataSize = dataBuf.FirstU32();
             dataBuf = dataBuf.Skip(4);
 
@@ -147,9 +148,6 @@ namespace eAmuseCore.KBinXML
                     }
                 }
 
-                Console.WriteLine("Name: " + name);
-                Console.WriteLine("Type: " + nodeType);
-
                 XmlTypes.Entry nodeTypeEntry = null;
                 bool startNode = false;
 
@@ -158,7 +156,6 @@ namespace eAmuseCore.KBinXML
                     case XmlTypes.AttrType:
                         string attrVal = EnumHelpers.TakeStringAligned(ref dataBuf, encoding);
                         node.SetAttributeValue(name, attrVal);
-                        Console.WriteLine("Attr val: " + attrVal);
                         break;
                     case XmlTypes.NodeEndType:
                         node = node.Parent;
@@ -185,9 +182,68 @@ namespace eAmuseCore.KBinXML
 
                 if (startNode)
                     continue;
+
+                node.SetAttributeValue("__type", nodeTypeEntry.names[0]);
+
+                int varCount = nodeTypeEntry.count;
+                int arrCount = 1;
+                if (varCount < 0)
+                {
+                    varCount = dataBuf.FirstS32();
+                    dataBuf = dataBuf.Skip(4);
+                    isArray = true;
+                }
+                else if (isArray)
+                {
+                    arrCount = dataBuf.FirstS32() / (nodeTypeEntry.size * nodeTypeEntry.count);
+                    dataBuf = dataBuf.Skip(4);
+                    node.SetAttributeValue("__count", arrCount);
+                }
+                int totCount = arrCount * varCount;
+                int totSize = totCount * nodeTypeEntry.size;
+
+                IEnumerable<byte> data = null;
+                if (isArray || totSize > 2)
+                {
+                    data = EnumHelpers.TakeBytesAligned(ref dataBuf, totCount * nodeTypeEntry.size);
+                }
+                else if (totSize == 1)
+                {
+                    if (!dataByteBuf.Any())
+                    {
+                        dataByteBuf = dataBuf;
+                        dataBuf = dataBuf.Skip(4);
+                    }
+                    data = dataByteBuf.Take(1);
+                    dataByteBuf = dataByteBuf.Skip(1);
+                }
+                else if(totSize == 2)
+                {
+                    if (!dataWordBuf.Any())
+                    {
+                        dataWordBuf = dataBuf;
+                        dataBuf = dataBuf.Skip(4);
+                    }
+                    data = dataWordBuf.Take(2);
+                    dataWordBuf = dataWordBuf.Skip(2);
+                }
+
+                if (nodeType == XmlTypes.Bin.nodeType)
+                {
+                    node.SetAttributeValue("__size", totCount);
+                    node.Value = string.Join("", data.Select(b => Convert.ToString(b, 16).PadLeft(2, '0')));
+                }
+                else if (nodeType == XmlTypes.Str.nodeType)
+                {
+                    node.Value = encoding.GetString(data.ToArray(), 0, totCount - 1);
+                }
+                else
+                {
+                    node.Value = string.Join(" ", XmlTypes.DataToString(data, nodeTypeEntry));
+                }
             }
 
-            doc = new XDocument(fakeroot.Elements().First());
+            doc = new XDocument(fakeroot.FirstNode);
             Console.WriteLine(doc.ToString());
         }
     }

@@ -20,7 +20,7 @@ namespace eAmuseCore.KBinXML
             public int size = 0;
             public int count = 0;
             public Type type = typeof(object);
-            public Func<IEnumerable<byte>, IEnumerable<object>> read = _ => Enumerable.Empty<object>();
+            public Func<IEnumerable<byte>, string> toString;
         }
 
         public static readonly Entry Void = new Entry
@@ -36,7 +36,7 @@ namespace eAmuseCore.KBinXML
             size = 1,
             count = 1,
             type = typeof(sbyte),
-            read = input => input.TakeS8(1).Box(),
+            toString = input => input.FirstS8().ToString(),
         };
 
         public static readonly Entry U8 = new Entry
@@ -46,7 +46,7 @@ namespace eAmuseCore.KBinXML
             size = 1,
             count = 1,
             type = typeof(byte),
-            read = input => input.TakeU8(1).Box(),
+            toString = input => input.FirstU8().ToString(),
         };
 
         public static readonly Entry S16 = new Entry
@@ -56,7 +56,7 @@ namespace eAmuseCore.KBinXML
             size = 2,
             count = 1,
             type = typeof(short),
-            read = input => input.TakeS16(1).Box(),
+            toString = input => input.FirstS16().ToString(),
         };
 
         public static readonly Entry U16 = new Entry
@@ -66,7 +66,7 @@ namespace eAmuseCore.KBinXML
             size = 2,
             count = 1,
             type = typeof(ushort),
-            read = input => input.TakeU16(1).Box(),
+            toString = input => input.FirstU16().ToString(),
         };
 
         public static readonly Entry S32 = new Entry
@@ -76,7 +76,7 @@ namespace eAmuseCore.KBinXML
             size = 4,
             count = 1,
             type = typeof(int),
-            read = input => input.TakeS32(1).Box(),
+            toString = input => input.FirstS32().ToString(),
         };
 
         public static readonly Entry U32 = new Entry
@@ -86,7 +86,7 @@ namespace eAmuseCore.KBinXML
             size = 4,
             count = 1,
             type = typeof(int),
-            read = input => input.TakeU32(1).Box(),
+            toString = input => input.FirstU32().ToString(),
         };
 
         public static readonly Entry S64 = new Entry
@@ -96,7 +96,7 @@ namespace eAmuseCore.KBinXML
             size = 8,
             count = 1,
             type = typeof(int),
-            read = input => input.TakeS64(1).Box(),
+            toString = input => input.FirstS64().ToString(),
         };
 
         public static readonly Entry U64 = new Entry
@@ -106,27 +106,27 @@ namespace eAmuseCore.KBinXML
             size = 8,
             count = 1,
             type = typeof(int),
-            read = input => input.TakeU64(1).Box(),
+            toString = input => input.FirstU64().ToString(),
         };
 
         public static readonly Entry Bin = new Entry
         {
             names = new[] { "bin", "binary" },
             nodeType = 10,
-            size = 4,
+            size = 1,
             count = -1,
-            type = typeof(byte[]),
-            read = input => input.TakeU64(1).Box(),
+            type = typeof(byte),
+            toString = null, // special case, cannot be handled here
         };
 
         public static readonly Entry Str = new Entry
         {
             names = new[] { "str", "string" },
             nodeType = 11,
-            size = 4,
+            size = 1,
             count = -1,
-            type = typeof(byte[]),
-            read = input => input.TakeU64(1).Box(),
+            type = typeof(byte),
+            toString = null, // special case, cannot be handled here
         };
 
         private static Dictionary<string, Entry> nameLookupMap = new Dictionary<string, Entry>();
@@ -168,6 +168,15 @@ namespace eAmuseCore.KBinXML
             }
 
             return null;
+        }
+
+        public static IEnumerable<string> DataToString(IEnumerable<byte> dataBuf, Entry entry)
+        {
+            while (dataBuf.Any())
+            {
+                yield return entry.toString(dataBuf);
+                dataBuf = dataBuf.Skip(entry.size);
+            }
         }
     }
 }

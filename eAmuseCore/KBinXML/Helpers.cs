@@ -168,10 +168,13 @@ namespace eAmuseCore.KBinXML
             return input.Select(v => (object)v);
         }
 
-        public static IEnumerable<byte> TakeByteArrayAligned(ref IEnumerable<byte> input)
+        public static IEnumerable<byte> TakeBytesAligned(ref IEnumerable<byte> input, int size = -1)
         {
-            int size = input.FirstS32();
-            input = input.Skip(4);
+            if (size < 0)
+            {
+                size = input.FirstS32();
+                input = input.Skip(4);
+            }
 
             var res = input.Take(size);
             input = input.Skip(size);
@@ -183,9 +186,9 @@ namespace eAmuseCore.KBinXML
             return res;
         }
 
-        public static string TakeStringAligned(ref IEnumerable<byte> input, Encoding encoding)
+        public static string TakeStringAligned(ref IEnumerable<byte> input, Encoding encoding, int size = -1)
         {
-            byte[] data = TakeByteArrayAligned(ref input).ToArray();
+            byte[] data = TakeBytesAligned(ref input, size).ToArray();
             return encoding.GetString(data, 0, data.Length - 1); // drop final null byte
         }
     }
