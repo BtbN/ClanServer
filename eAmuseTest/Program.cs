@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Text;
 using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 
 using eAmuseCore.Crypto;
 using eAmuseCore.Compression;
-using System.Collections;
+using eAmuseCore.KBinXML;
 
 namespace eAmuseTest
 {
@@ -36,13 +37,18 @@ namespace eAmuseTest
                 0x4b, 0x66, 0x07, 0xc0, 0xd0, 0xb3
             };
 
-            var decryptedData = RC4.ApplyEAmuseInfo(eamuse_info, data).ToArray();
+            compress = compress.ToLower();
 
-            Console.WriteLine(BytesToString(decryptedData));
+            var decryptedData = RC4.ApplyEAmuseInfo(eamuse_info, data);
+            var rawData = decryptedData;
+            if (compress == "lz77")
+                rawData = LZ77.Decompress(decryptedData);
+            else if (compress != "none")
+                throw new ArgumentException("Unsupported compression algorithm");
 
-            Console.WriteLine("Ok go");
+            Console.WriteLine(BytesToString(rawData));
 
-            var rawData = LZ77.Decompress(decryptedData).ToArray();
+            KBinXML kbinxml = new KBinXML(rawData);
         }
 
         private static string BytesToString(IEnumerable<byte> bytes)
