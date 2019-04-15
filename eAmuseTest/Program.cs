@@ -46,7 +46,7 @@ namespace eAmuseTest
             else if (compress != "none")
                 throw new ArgumentException("Unsupported compression algorithm");
 
-            Console.WriteLine(BytesToString(rawData));
+            Console.WriteLine("" + ((3 - 4) % 4));
 
             KBinXML kbinxml = new KBinXML(rawData);
         }

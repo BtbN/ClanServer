@@ -114,9 +114,11 @@ namespace eAmuseCore.KBinXML
             uint dataSize = dataBuf.FirstU32();
             dataBuf = dataBuf.Skip(4);
 
-            XElement node = doc.Root;
+            XElement fakeroot = new XElement("fakeroot");
+            XElement node = fakeroot;
 
-            while (nodeBuf.Any())
+            bool nodesLeft = true;
+            while (nodesLeft && nodeBuf.Any())
             {
                 nodeBuf = nodeBuf.SkipWhile(b => b == 0);
 
@@ -126,10 +128,8 @@ namespace eAmuseCore.KBinXML
                 bool isArray = (nodeType & 64) != 0;
                 nodeType = (byte)(nodeType & ~64);
 
-                XmlTypes.Entry nodeTypeEntry = XmlTypes.GetEntryByType(nodeType);
-
-                string name = null;
-                if (nodeType != XmlTypes.NodeEnd.nodeType && nodeType != XmlTypes.EndSection.nodeType)
+                string name = "";
+                if (nodeType != XmlTypes.NodeEndType && nodeType != XmlTypes.SectionEndType)
                 {
                     if (compressed)
                     {
@@ -148,15 +148,47 @@ namespace eAmuseCore.KBinXML
                 }
 
                 Console.WriteLine("Name: " + name);
+                Console.WriteLine("Type: " + nodeType);
 
-                bool skip = true;
+                XmlTypes.Entry nodeTypeEntry = null;
+                bool startNode = false;
 
-                if (nodeType == XmlTypes.EndSection.nodeType)
-                    break;
+                switch (nodeType)
+                {
+                    case XmlTypes.AttrType:
+                        string attrVal = EnumHelpers.TakeStringAligned(ref dataBuf, encoding);
+                        node.SetAttributeValue(name, attrVal);
+                        Console.WriteLine("Attr val: " + attrVal);
+                        break;
+                    case XmlTypes.NodeEndType:
+                        node = node.Parent;
+                        break;
+                    case XmlTypes.SectionEndType:
+                        nodesLeft = false;
+                        break;
+                    case XmlTypes.NodeStartType:
+                        startNode = true;
+                        break;
+                    default:
+                        nodeTypeEntry = XmlTypes.GetEntryByType(nodeType);
+                        if (nodeTypeEntry == null)
+                            throw new NotImplementedException("nodeType " + nodeType + " is not implemented");
+                        break;
+                }
 
-                if (skip)
+                if (nodeTypeEntry == null && !startNode)
+                    continue;
+
+                XElement child = new XElement(name);
+                node.Add(child);
+                node = child;
+
+                if (startNode)
                     continue;
             }
+
+            doc = new XDocument(fakeroot.Elements().First());
+            Console.WriteLine(doc.ToString());
         }
     }
 }

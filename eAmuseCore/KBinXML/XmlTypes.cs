@@ -8,6 +8,11 @@ namespace eAmuseCore.KBinXML
 {
     public static class XmlTypes
     {
+        public const int NodeStartType = 1;
+        public const int AttrType = 46;
+        public const int NodeEndType = 190;
+        public const int SectionEndType = 191;
+
         public class Entry
         {
             public string[] names = null;
@@ -16,15 +21,7 @@ namespace eAmuseCore.KBinXML
             public int count = 0;
             public Type type = typeof(object);
             public Func<IEnumerable<byte>, IEnumerable<object>> read = _ => Enumerable.Empty<object>();
-            public bool isVirtual = false;
         }
-
-        public static readonly Entry NodeStart = new Entry
-        {
-            names = new[] { "nodeStart" },
-            nodeType = 1,
-            isVirtual = true,
-        };
 
         public static readonly Entry Void = new Entry
         {
@@ -116,30 +113,20 @@ namespace eAmuseCore.KBinXML
         {
             names = new[] { "bin", "binary" },
             nodeType = 10,
-            size = 1,
+            size = 4,
             count = -1,
             type = typeof(byte[]),
             read = input => input.TakeU64(1).Box(),
         };
 
-        public static readonly Entry Attr = new Entry
+        public static readonly Entry Str = new Entry
         {
-            names = new[] { "attr" },
-            nodeType = 46,
-        };
-
-        public static readonly Entry NodeEnd = new Entry
-        {
-            names = new[] { "nodeEnd" },
-            nodeType = 190,
-            isVirtual = true,
-        };
-
-        public static readonly Entry EndSection = new Entry
-        {
-            names = new[] { "endSection" },
-            nodeType = 191,
-            isVirtual = true,
+            names = new[] { "str", "string" },
+            nodeType = 11,
+            size = 4,
+            count = -1,
+            type = typeof(byte[]),
+            read = input => input.TakeU64(1).Box(),
         };
 
         private static Dictionary<string, Entry> nameLookupMap = new Dictionary<string, Entry>();
@@ -174,7 +161,7 @@ namespace eAmuseCore.KBinXML
                 if (!info.IsStatic)
                     continue;
                 Entry res = info.GetValue(null) as Entry;
-                if (res == null || res.nodeType != type || res.isVirtual)
+                if (res == null || res.nodeType != type)
                     continue;
                 typeLookupMap[type] = res;
                 return res;

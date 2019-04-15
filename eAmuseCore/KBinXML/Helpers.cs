@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace eAmuseCore.KBinXML
 {
@@ -165,6 +166,27 @@ namespace eAmuseCore.KBinXML
         public static IEnumerable<object> Box<T>(this IEnumerable<T> input)
         {
             return input.Select(v => (object)v);
+        }
+
+        public static IEnumerable<byte> TakeByteArrayAligned(ref IEnumerable<byte> input)
+        {
+            int size = input.FirstS32();
+            input = input.Skip(4);
+
+            var res = input.Take(size);
+            input = input.Skip(size);
+
+            int align = 4 - (size % 4);
+            if (align != 4)
+                input = input.Skip(align);
+
+            return res;
+        }
+
+        public static string TakeStringAligned(ref IEnumerable<byte> input, Encoding encoding)
+        {
+            byte[] data = TakeByteArrayAligned(ref input).ToArray();
+            return encoding.GetString(data, 0, data.Length - 1); // drop final null byte
         }
     }
 }
