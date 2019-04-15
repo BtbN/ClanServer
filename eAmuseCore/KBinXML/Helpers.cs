@@ -11,9 +11,9 @@ namespace eAmuseCore.KBinXML
             for (int i = 0; i < count; ++i)
             {
                 var state = input.Take(8);
+                input = input.Skip(8);
                 if (BitConverter.IsLittleEndian)
                     state = state.Reverse();
-                input = input.Skip(8);
                 yield return BitConverter.ToUInt64(state.ToArray(), 0);
             }
         }
@@ -23,9 +23,9 @@ namespace eAmuseCore.KBinXML
             for (int i = 0; i < count; ++i)
             {
                 var state = input.Take(8);
+                input = input.Skip(8);
                 if (BitConverter.IsLittleEndian)
                     state = state.Reverse();
-                input = input.Skip(8);
                 yield return BitConverter.ToInt64(state.ToArray(), 0);
             }
         }
@@ -35,9 +35,9 @@ namespace eAmuseCore.KBinXML
             for (int i = 0; i < count; ++i)
             {
                 var state = input.Take(4);
+                input = input.Skip(4);
                 if (BitConverter.IsLittleEndian)
                     state = state.Reverse();
-                input = input.Skip(4);
                 yield return BitConverter.ToUInt32(state.ToArray(), 0);
             }
         }
@@ -47,9 +47,9 @@ namespace eAmuseCore.KBinXML
             for (int i = 0; i < count; ++i)
             {
                 var state = input.Take(4);
+                input = input.Skip(4);
                 if (BitConverter.IsLittleEndian)
                     state = state.Reverse();
-                input = input.Skip(4);
                 yield return BitConverter.ToInt32(state.ToArray(), 0);
             }
         }
@@ -59,9 +59,9 @@ namespace eAmuseCore.KBinXML
             for (int i = 0; i < count; ++i)
             {
                 var state = input.Take(2);
+                input = input.Skip(2);
                 if (BitConverter.IsLittleEndian)
                     state = state.Reverse();
-                input = input.Skip(2);
                 yield return BitConverter.ToUInt16(state.ToArray(), 0);
             }
         }
@@ -71,9 +71,9 @@ namespace eAmuseCore.KBinXML
             for (int i = 0; i < count; ++i)
             {
                 var state = input.Take(2);
+                input = input.Skip(2);
                 if (BitConverter.IsLittleEndian)
                     state = state.Reverse();
-                input = input.Skip(2);
                 yield return BitConverter.ToInt16(state.ToArray(), 0);
             }
         }
@@ -93,9 +93,9 @@ namespace eAmuseCore.KBinXML
             for (int i = 0; i < count; ++i)
             {
                 var state = input.Take(4);
+                input = input.Skip(4);
                 if (BitConverter.IsLittleEndian)
                     state = state.Reverse();
-                input = input.Skip(4);
                 yield return BitConverter.ToSingle(state.ToArray(), 0);
             }
         }
@@ -105,9 +105,9 @@ namespace eAmuseCore.KBinXML
             for (int i = 0; i < count; ++i)
             {
                 var state = input.Take(8);
+                input = input.Skip(8);
                 if (BitConverter.IsLittleEndian)
                     state = state.Reverse();
-                input = input.Skip(8);
                 yield return BitConverter.ToDouble(state.ToArray(), 0);
             }
         }
