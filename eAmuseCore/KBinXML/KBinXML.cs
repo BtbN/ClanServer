@@ -71,12 +71,12 @@ namespace eAmuseCore.KBinXML
         {
             doc = new XDocument();
 
-            if (input.First() != SIGNATURE)
+            if (input.FirstU8() != SIGNATURE)
                 throw new ArgumentException("Invalid signature", "input");
             input = input.Skip(1);
 
             bool compressed;
-            switch (input.First())
+            switch (input.FirstU8())
             {
                 case SIG_COMPRESSED:
                     compressed = true;
@@ -91,10 +91,10 @@ namespace eAmuseCore.KBinXML
 
             Console.WriteLine("Compressed: " + compressed);
 
-            byte encodingSig = input.First();
+            byte encodingSig = input.FirstU8();
             input = input.Skip(1);
 
-            if (input.First() != (0xFF ^ encodingSig))
+            if (input.FirstU8() != (0xFF ^ encodingSig))
                 throw new ArgumentException("Encoding signature failed to verify", "input");
             input = input.Skip(1);
 
@@ -120,7 +120,7 @@ namespace eAmuseCore.KBinXML
             {
                 nodeBuf = nodeBuf.SkipWhile(b => b == 0);
 
-                byte nodeType = nodeBuf.First();
+                byte nodeType = nodeBuf.FirstU8();
                 nodeBuf = nodeBuf.Skip(1);
 
                 bool isArray = (nodeType & 64) != 0;
@@ -129,7 +129,7 @@ namespace eAmuseCore.KBinXML
                 XmlTypes.Entry nodeTypeEntry = XmlTypes.GetEntryByType(nodeType);
 
                 string name = null;
-                if (nodeType != XmlTypes.NodeEnd.type && nodeType != XmlTypes.EndSection.type)
+                if (nodeType != XmlTypes.NodeEnd.nodeType && nodeType != XmlTypes.EndSection.nodeType)
                 {
                     if (compressed)
                     {
@@ -151,7 +151,7 @@ namespace eAmuseCore.KBinXML
 
                 bool skip = true;
 
-                if (nodeType == XmlTypes.EndSection.type)
+                if (nodeType == XmlTypes.EndSection.nodeType)
                     break;
 
                 if (skip)

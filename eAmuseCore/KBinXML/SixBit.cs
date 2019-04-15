@@ -52,7 +52,7 @@ namespace eAmuseCore.KBinXML
 
         public static string Unpack(ref IEnumerable<byte> nodeBuf)
         {
-            int length = nodeBuf.First();
+            int length = nodeBuf.FirstU8();
             nodeBuf = nodeBuf.Skip(1);
 
             int length_bits = length * 6;
@@ -60,7 +60,7 @@ namespace eAmuseCore.KBinXML
             int padding = (8 - (length_bits % 8)) % 8;
 
             // bytes are in big endian order, BigInteger expects little endian, hence .Reverse() it.
-            BigInteger bits = new BigInteger(nodeBuf.Take(length_bytes).Reverse().ToArray());
+            BigInteger bits = new BigInteger(nodeBuf.TakeU8(length_bytes).Reverse().ToArray());
             nodeBuf = nodeBuf.Skip(length_bytes);
             bits >>= padding;
 

@@ -49,11 +49,6 @@ namespace eAmuseTest
             Console.WriteLine(BytesToString(rawData));
 
             KBinXML kbinxml = new KBinXML(rawData);
-
-            Dictionary<int, int> dd = new Dictionary<int, int>();
-            dd[2] = 3;
-            Console.WriteLine("" + dd[2]);
-            Console.WriteLine("" + dd[1]);
         }
 
         private static string BytesToString(IEnumerable<byte> bytes)
