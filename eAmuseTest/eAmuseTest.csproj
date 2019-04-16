@@ -6,7 +6,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="testcases.xml" />
+    <None Remove="testcases_out.kbin" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="testcases.xml" />
+    <EmbeddedResource Include="testcases_out.kbin" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\eAmuseCore\eAmuseCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
   </ItemGroup>
 
 </Project>

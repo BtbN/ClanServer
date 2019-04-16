@@ -46,9 +46,9 @@ namespace eAmuseTest
             else if (compress != "none")
                 throw new ArgumentException("Unsupported compression algorithm");
 
-            Console.WriteLine(BitConverter.ToString(new byte[] { 1, 2, 3, 4 }));
-
             KBinXML kbinxml = new KBinXML(rawData);
+
+            KBinXML testDoc = new KBinXML(ExtractResource("eAmuseTest.testcases_out.kbin"));
         }
 
         private static string BytesToString(IEnumerable<byte> bytes)
@@ -70,6 +70,20 @@ namespace eAmuseTest
             }
 
             return sb.ToString();
+        }
+
+        private static byte[] ExtractResource(string fileName)
+        {
+            var a = System.Reflection.Assembly.GetExecutingAssembly();
+            using (var fStream = a.GetManifestResourceStream(fileName))
+            {
+                if (fStream == null)
+                    throw new ArgumentException("resource does not exist", "fileName");
+                byte[] res = new byte[fStream.Length];
+                for (int pos = 0; pos < res.Length; )
+                    pos += fStream.Read(res, pos, res.Length - pos);
+                return res;
+            }
         }
     }
 }
