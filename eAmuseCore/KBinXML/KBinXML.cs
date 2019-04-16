@@ -217,7 +217,7 @@ namespace eAmuseCore.KBinXML
                     data = dataByteBuf.Take(1);
                     dataByteBuf = dataByteBuf.Skip(1);
                 }
-                else if(totSize == 2)
+                else if (totSize == 2)
                 {
                     if (!dataWordBuf.Any())
                     {
@@ -226,6 +226,10 @@ namespace eAmuseCore.KBinXML
                     }
                     data = dataWordBuf.Take(2);
                     dataWordBuf = dataWordBuf.Skip(2);
+                }
+                else if (totSize == 0)
+                {
+                    continue;
                 }
 
                 if (nodeType == XmlTypes.Bin.nodeType)
