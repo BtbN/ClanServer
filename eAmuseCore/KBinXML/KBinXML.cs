@@ -2,6 +2,7 @@
 using System.Text;
 using System.Linq;
 using System.Xml.Linq;
+using System.Reflection;
 using System.Collections.Generic;
 
 namespace eAmuseCore.KBinXML
@@ -15,6 +16,7 @@ namespace eAmuseCore.KBinXML
         static KBinXML()
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            XmlTypes.XmlTypes.RegisterAll();
         }
 
         private static Encoding GetEncoding(byte sig)
@@ -130,7 +132,7 @@ namespace eAmuseCore.KBinXML
                 nodeType = (byte)(nodeType & ~64);
 
                 string name = "";
-                if (nodeType != XmlTypes.NodeEndType && nodeType != XmlTypes.SectionEndType)
+                if (nodeType != XmlTypes.XmlTypes.NodeEndType && nodeType != XmlTypes.XmlTypes.SectionEndType)
                 {
                     if (compressed)
                     {
@@ -148,32 +150,30 @@ namespace eAmuseCore.KBinXML
                     }
                 }
 
-                XmlTypes.Entry nodeTypeEntry = null;
+                KValueAttribute nodeAttrs = null;
                 bool startNode = false;
 
                 switch (nodeType)
                 {
-                    case XmlTypes.AttrType:
+                    case XmlTypes.XmlTypes.AttrType:
                         string attrVal = EnumHelpers.TakeStringAligned(ref dataBuf, encoding);
                         node.SetAttributeValue(name, attrVal);
                         break;
-                    case XmlTypes.NodeEndType:
+                    case XmlTypes.XmlTypes.NodeEndType:
                         node = node.Parent;
                         break;
-                    case XmlTypes.SectionEndType:
+                    case XmlTypes.XmlTypes.SectionEndType:
                         nodesLeft = false;
                         break;
-                    case XmlTypes.NodeStartType:
+                    case XmlTypes.XmlTypes.NodeStartType:
                         startNode = true;
                         break;
                     default:
-                        nodeTypeEntry = XmlTypes.GetEntryByType(nodeType);
-                        if (nodeTypeEntry == null)
-                            throw new NotImplementedException("nodeType " + nodeType + " is not implemented");
+                        nodeAttrs = KValueAttribute.GetAttrByType(nodeType);
                         break;
                 }
 
-                if (nodeTypeEntry == null && !startNode)
+                if (nodeAttrs == null && !startNode)
                     continue;
 
                 XElement child = new XElement(name);
@@ -183,9 +183,9 @@ namespace eAmuseCore.KBinXML
                 if (startNode)
                     continue;
 
-                node.SetAttributeValue("__type", nodeTypeEntry.names[0]);
+                node.SetAttributeValue("__type", nodeAttrs.Name);
 
-                int varCount = nodeTypeEntry.count;
+                int varCount = nodeAttrs.Count;
                 int arrCount = 1;
                 if (varCount < 0)
                 {
@@ -195,17 +195,17 @@ namespace eAmuseCore.KBinXML
                 }
                 else if (isArray)
                 {
-                    arrCount = dataBuf.FirstS32() / (nodeTypeEntry.size * nodeTypeEntry.count);
+                    arrCount = dataBuf.FirstS32() / (nodeAttrs.Size * nodeAttrs.Count);
                     dataBuf = dataBuf.Skip(4);
                     node.SetAttributeValue("__count", arrCount);
                 }
                 int totCount = arrCount * varCount;
-                int totSize = totCount * nodeTypeEntry.size;
+                int totSize = totCount * nodeAttrs.Size;
 
                 IEnumerable<byte> data = null;
                 if (isArray || totSize > 2)
                 {
-                    data = EnumHelpers.TakeBytesAligned(ref dataBuf, totCount * nodeTypeEntry.size);
+                    data = EnumHelpers.TakeBytesAligned(ref dataBuf, totCount * nodeAttrs.Size);
                 }
                 else if (totSize == 1)
                 {
@@ -232,18 +232,18 @@ namespace eAmuseCore.KBinXML
                     continue;
                 }
 
-                if (nodeType == XmlTypes.Bin.nodeType)
+                if (nodeType == XmlTypes.XmlTypes.BinType)
                 {
                     node.SetAttributeValue("__size", totCount);
-                    node.Value = string.Join("", data.Select(b => Convert.ToString(b, 16).PadLeft(2, '0')));
+                    node.SetValue(XmlTypes.Bin.FromBytes(data));
                 }
-                else if (nodeType == XmlTypes.Str.nodeType)
+                else if (nodeType == XmlTypes.XmlTypes.StrType)
                 {
-                    node.Value = encoding.GetString(data.ToArray(), 0, totCount - 1);
+                    node.SetValue(XmlTypes.Str.FromBytes(data, encoding));
                 }
                 else
                 {
-                    node.Value = string.Join(" ", XmlTypes.DataToString(data, nodeTypeEntry));
+                    node.SetValue(XmlTypes.XmlTypes.MakeNodeFromBytes(nodeType, data));
                 }
             }
 

@@ -4,179 +4,163 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-namespace eAmuseCore.KBinXML
+namespace eAmuseCore.KBinXML.XmlTypes
 {
+    [KValue(1, "void", Count = 1, Size = 0)]
+    public class Void : KValue<object>
+    {
+        public Void(object _) => Value = null;
+        static public Void FromString(object _) => new Void(null);
+        static public Void FromBytes(IEnumerable<byte> input) => new Void(null);
+    }
+
+    [KValue(2, "s8", Count = 1, Size = 1)]
+    public class S8 : KValue<sbyte>
+    {
+        public S8(sbyte value) => Value = value;
+        static public S8 FromString(string input) => new S8(Convert.ToSByte(input));
+        static public S8 FromBytes(IEnumerable<byte> input) => new S8(input.FirstS8());
+    }
+
+    [KValue(3, "u8", Count = 1, Size = 1)]
+    public class U8 : KValue<byte>
+    {
+        public U8(byte value) => Value = value;
+        static public U8 FromString(string input) => new U8(Convert.ToByte(input));
+        static public U8 FromBytes(IEnumerable<byte> input) => new U8(input.FirstU8());
+    }
+
+    [KValue(4, "s16", Count = 1, Size = 2)]
+    public class S16 : KValue<short>
+    {
+        public S16(short value) => Value = value;
+        static public S16 FromString(string input) => new S16(Convert.ToInt16(input));
+        static public S16 FromBytes(IEnumerable<byte> input) => new S16(input.FirstS16());
+    }
+
+    [KValue(5, "u16", Count = 1, Size = 2)]
+    public class U16 : KValue<ushort>
+    {
+        public U16(ushort value) => Value = value;
+        static public U16 FromString(string input) => new U16(Convert.ToUInt16(input));
+        static public U16 FromBytes(IEnumerable<byte> input) => new U16(input.FirstU16());
+    }
+
+    [KValue(6, "s32", Count = 1, Size = 4)]
+    public class S32 : KValue<int>
+    {
+        public S32(int value) => Value = value;
+        static public S32 FromString(string input) => new S32(Convert.ToInt32(input));
+        static public S32 FromBytes(IEnumerable<byte> input) => new S32(input.FirstS32());
+    }
+
+    [KValue(7, "u32", Count = 1, Size = 4)]
+    public class U32 : KValue<uint>
+    {
+        public U32(uint value) => Value = value;
+        static public U32 FromString(string input) => new U32(Convert.ToUInt32(input));
+        static public U32 FromBytes(IEnumerable<byte> input) => new U32(input.FirstU32());
+    }
+
+    [KValue(8, "s64", Count = 1, Size = 8)]
+    public class S64 : KValue<long>
+    {
+        public S64(long value) => Value = value;
+        static public S64 FromString(string input) => new S64(Convert.ToInt64(input));
+        static public S64 FromBytes(IEnumerable<byte> input) => new S64(input.FirstS64());
+    }
+
+    [KValue(9, "u64", Count = 1, Size = 8)]
+    public class U64 : KValue<ulong>
+    {
+        public U64(ulong value) => Value = value;
+        static public U64 FromString(string input) => new U64(Convert.ToUInt64(input));
+        static public U64 FromBytes(IEnumerable<byte> input) => new U64(input.FirstU64());
+    }
+
+    [KValue(10, "bin", "binary", Count = -1, Size = 1)]
+    public class Bin : KValue<byte[]>
+    {
+        public Bin(byte[] value) => Value = value;
+
+        public override string ToString()
+        {
+            return string.Join("", Value.Select(b => Convert.ToString(b, 16).PadLeft(2, '0')));
+        }
+
+        static public Bin FromString(string input)
+        {
+            throw new NotImplementedException();
+        }
+
+        static public Bin FromBytes(IEnumerable<byte> input) => new Bin(input.ToArray());
+    }
+
+    [KValue(11, "str", "string", Count = -1, Size = 1)]
+    public class Str : KValue<string>
+    {
+        public Str(string value) => Value = value;
+
+        public override string ToString() => Value;
+
+        static public Str FromString(string input) => new Str(input);
+
+        static public Str FromBytes(IEnumerable<byte> input, Encoding encoding)
+        {
+            byte[] data = input.ToArray();
+            return new Str(encoding.GetString(data, 0, data.Length - 1));
+        }
+    }
+
     public static class XmlTypes
     {
         public const int NodeStartType = 1;
+        public const int BinType = 10;
+        public const int StrType = 11;
         public const int AttrType = 46;
         public const int NodeEndType = 190;
         public const int SectionEndType = 191;
 
-        public class Entry
+        private static Dictionary<byte, Type> lookupMap = new Dictionary<byte, Type>();
+
+        public static void RegisterAll()
         {
-            public string[] names = null;
-            public byte nodeType = 0;
-            public int size = 0;
-            public int count = 0;
-            public Type type = typeof(object);
-            public Func<IEnumerable<byte>, string> toString;
+            Type[] types = new[]
+            {
+                typeof(Void),
+                typeof(S8),
+                typeof(U8),
+                typeof(S16),
+                typeof(U16),
+                typeof(S32),
+                typeof(U32),
+                typeof(S64),
+                typeof(U64),
+                typeof(Bin),
+                typeof(Str),
+            };
+
+            foreach (Type type in types)
+            {
+                KValueAttribute attr = type.GetCustomAttributes(typeof(KValueAttribute), true).First() as KValueAttribute;
+
+                lookupMap[attr.NodeType] = type;
+                KValueAttribute.Register(attr);
+            }
         }
 
-        public static readonly Entry Void = new Entry
+        public static Type GetByType(byte type)
         {
-            names = new[] { "void" },
-            nodeType = 1,
-        };
-
-        public static readonly Entry S8 = new Entry
-        {
-            names = new[] { "s8" },
-            nodeType = 2,
-            size = 1,
-            count = 1,
-            type = typeof(sbyte),
-            toString = input => input.FirstS8().ToString(),
-        };
-
-        public static readonly Entry U8 = new Entry
-        {
-            names = new[] { "u8" },
-            nodeType = 3,
-            size = 1,
-            count = 1,
-            type = typeof(byte),
-            toString = input => input.FirstU8().ToString(),
-        };
-
-        public static readonly Entry S16 = new Entry
-        {
-            names = new[] { "s16" },
-            nodeType = 4,
-            size = 2,
-            count = 1,
-            type = typeof(short),
-            toString = input => input.FirstS16().ToString(),
-        };
-
-        public static readonly Entry U16 = new Entry
-        {
-            names = new[] { "u16" },
-            nodeType = 5,
-            size = 2,
-            count = 1,
-            type = typeof(ushort),
-            toString = input => input.FirstU16().ToString(),
-        };
-
-        public static readonly Entry S32 = new Entry
-        {
-            names = new[] { "s32" },
-            nodeType = 6,
-            size = 4,
-            count = 1,
-            type = typeof(int),
-            toString = input => input.FirstS32().ToString(),
-        };
-
-        public static readonly Entry U32 = new Entry
-        {
-            names = new[] { "u32" },
-            nodeType = 7,
-            size = 4,
-            count = 1,
-            type = typeof(int),
-            toString = input => input.FirstU32().ToString(),
-        };
-
-        public static readonly Entry S64 = new Entry
-        {
-            names = new[] { "s64" },
-            nodeType = 8,
-            size = 8,
-            count = 1,
-            type = typeof(int),
-            toString = input => input.FirstS64().ToString(),
-        };
-
-        public static readonly Entry U64 = new Entry
-        {
-            names = new[] { "u64" },
-            nodeType = 9,
-            size = 8,
-            count = 1,
-            type = typeof(int),
-            toString = input => input.FirstU64().ToString(),
-        };
-
-        public static readonly Entry Bin = new Entry
-        {
-            names = new[] { "bin", "binary" },
-            nodeType = 10,
-            size = 1,
-            count = -1,
-            type = typeof(byte),
-            toString = null, // special case, cannot be handled here
-        };
-
-        public static readonly Entry Str = new Entry
-        {
-            names = new[] { "str", "string" },
-            nodeType = 11,
-            size = 1,
-            count = -1,
-            type = typeof(byte),
-            toString = null, // special case, cannot be handled here
-        };
-
-        private static Dictionary<string, Entry> nameLookupMap = new Dictionary<string, Entry>();
-        private static Dictionary<byte, Entry> typeLookupMap = new Dictionary<byte, Entry>();
-
-        public static Entry GetEntryByName(string name)
-        {
-            if (nameLookupMap.ContainsKey(name))
-                return nameLookupMap[name];
-
-            foreach (FieldInfo info in typeof(XmlTypes).GetFields())
-            {
-                if (!info.IsStatic)
-                    continue;
-                Entry res = info.GetValue(null) as Entry;
-                if (res == null || !res.names.Contains(name))
-                    continue;
-                nameLookupMap[name] = res;
-                return res;
-            }
-
-            return null;
+            if (!lookupMap.ContainsKey(type))
+                throw new NotImplementedException("KValue type not implemented: " + type);
+            return lookupMap[type];
         }
 
-        public static Entry GetEntryByType(byte type)
+        public static object MakeNodeFromBytes(byte type, IEnumerable<byte> data)
         {
-            if (typeLookupMap.ContainsKey(type))
-                return typeLookupMap[type];
-
-            foreach (FieldInfo info in typeof(XmlTypes).GetFields())
-            {
-                if (!info.IsStatic)
-                    continue;
-                Entry res = info.GetValue(null) as Entry;
-                if (res == null || res.nodeType != type)
-                    continue;
-                typeLookupMap[type] = res;
-                return res;
-            }
-
-            return null;
-        }
-
-        public static IEnumerable<string> DataToString(IEnumerable<byte> dataBuf, Entry entry)
-        {
-            while (dataBuf.Any())
-            {
-                yield return entry.toString(dataBuf);
-                dataBuf = dataBuf.Skip(entry.size);
-            }
+            return GetByType(type)
+                .GetMethod("FromBytes", BindingFlags.Static | BindingFlags.Public)
+                .Invoke(null, new object[] { data });
         }
     }
 }
