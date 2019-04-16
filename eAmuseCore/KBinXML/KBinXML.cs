@@ -243,7 +243,7 @@ namespace eAmuseCore.KBinXML
                 }
                 else
                 {
-                    node.SetValue(XmlTypes.XmlTypes.MakeNodeFromBytes(nodeType, data));
+                    node.SetValue(XmlTypes.XmlTypes.MakeNodeFromBytes(nodeType, arrCount, data));
                 }
             }
 

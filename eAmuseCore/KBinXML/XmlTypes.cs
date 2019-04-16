@@ -2,7 +2,9 @@
 using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Net;
 using System.Text;
+using System.Collections;
 
 namespace eAmuseCore.KBinXML.XmlTypes
 {
@@ -112,6 +114,18 @@ namespace eAmuseCore.KBinXML.XmlTypes
         }
     }
 
+    [KValue(12, "ip4", Count = 1, Size = 4)]
+    public class IP4 : KValue<IPAddress>
+    {
+        public IP4(IPAddress value) => Value = value;
+
+        public override string ToString() => Value.ToString();
+
+        static public IP4 FromString(string input) => new IP4(IPAddress.Parse(input));
+
+        static public IP4 FromBytes(IEnumerable<byte> input) => new IP4(new IPAddress(input.Take(4).ToArray()));
+    }
+
     public static class XmlTypes
     {
         public const int NodeStartType = 1;
@@ -138,6 +152,7 @@ namespace eAmuseCore.KBinXML.XmlTypes
                 typeof(U64),
                 typeof(Bin),
                 typeof(Str),
+                typeof(IP4),
             };
 
             foreach (Type type in types)
@@ -156,11 +171,30 @@ namespace eAmuseCore.KBinXML.XmlTypes
             return lookupMap[type];
         }
 
-        public static object MakeNodeFromBytes(byte type, IEnumerable<byte> data)
+        public static object MakeNodeFromBytes(byte type, int count, IEnumerable<byte> data)
         {
-            return GetByType(type)
-                .GetMethod("FromBytes", BindingFlags.Static | BindingFlags.Public)
-                .Invoke(null, new object[] { data });
+            Type valType = GetByType(type);
+            MethodInfo fromBytes = valType.GetMethod("FromBytes", BindingFlags.Static | BindingFlags.Public);
+
+            if (count <= 1)
+            {
+                return fromBytes.Invoke(null, new object[] { data });
+            }
+            else
+            {
+                Type listType = typeof(KValueList<>).MakeGenericType(valType);
+                IList list = (IList)Activator.CreateInstance(listType);
+                var attr = KValueAttribute.GetAttrByType(type);
+                int size = attr.Size * attr.Count;
+
+                for (int i = 0; i < count; i++)
+                {
+                    list.Add(fromBytes.Invoke(null, new object[] { data }));
+                    data = data.Skip(size);
+                }
+
+                return list;
+            }
         }
     }
 }

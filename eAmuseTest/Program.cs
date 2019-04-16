@@ -46,7 +46,7 @@ namespace eAmuseTest
             else if (compress != "none")
                 throw new ArgumentException("Unsupported compression algorithm");
 
-            KBinXML kbinxml = new KBinXML(rawData);
+            //KBinXML kbinxml = new KBinXML(rawData);
 
             KBinXML testDoc = new KBinXML(ExtractResource("eAmuseTest.testcases_out.kbin"));
         }
