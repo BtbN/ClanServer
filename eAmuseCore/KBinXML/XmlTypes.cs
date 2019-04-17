@@ -98,7 +98,12 @@ namespace eAmuseCore.KBinXML.XmlTypes
 
         static public Bin FromString(string input)
         {
-            throw new NotImplementedException();
+            if ((input.Length % 2) != 2)
+                throw new ArgumentException("Hex string needs to consist of pairs of two chars.", "input");
+            byte[] res = new byte[input.Length / 2];
+            for (int i = 0, j = 0; i < input.Length; i += 2, ++j)
+                res[j] = Convert.ToByte(input.Substring(i, 2), 16);
+            return new Bin(res);
         }
 
         static public Bin FromBytes(IEnumerable<byte> input) => new Bin(input.ToArray());
@@ -196,6 +201,46 @@ namespace eAmuseCore.KBinXML.XmlTypes
         public K2S8(S8 v1, S8 v2) : base(v1, v2) { }
         static public K2S8 FromString(string input) => XmlTypes.ValueListTypeFromString<K2S8>(input);
         static public K2S8 FromBytes(IEnumerable<byte> input) => XmlTypes.ValueListTypeFromBytes<K2S8>(input);
+    }
+
+    [KValue(17, "2u8", Count = 2, Size = 1)]
+    public class K2U8 : KValueArray<U8>
+    {
+        public K2U8(U8 v1, U8 v2) : base(v1, v2) { }
+        static public K2U8 FromString(string input) => XmlTypes.ValueListTypeFromString<K2U8>(input);
+        static public K2U8 FromBytes(IEnumerable<byte> input) => XmlTypes.ValueListTypeFromBytes<K2U8>(input);
+    }
+
+    [KValue(18, "2s16", Count = 2, Size = 2)]
+    public class K2S16 : KValueArray<S16>
+    {
+        public K2S16(S16 v1, S16 v2) : base(v1, v2) { }
+        static public K2S16 FromString(string input) => XmlTypes.ValueListTypeFromString<K2S16>(input);
+        static public K2S16 FromBytes(IEnumerable<byte> input) => XmlTypes.ValueListTypeFromBytes<K2S16>(input);
+    }
+
+    [KValue(19, "2u16", Count = 2, Size = 2)]
+    public class K2U16 : KValueArray<U16>
+    {
+        public K2U16(U16 v1, U16 v2) : base(v1, v2) { }
+        static public K2U16 FromString(string input) => XmlTypes.ValueListTypeFromString<K2U16>(input);
+        static public K2U16 FromBytes(IEnumerable<byte> input) => XmlTypes.ValueListTypeFromBytes<K2U16>(input);
+    }
+
+    [KValue(20, "2s32", Count = 2, Size = 4)]
+    public class K2S32 : KValueArray<S32>
+    {
+        public K2S32(S32 v1, S32 v2) : base(v1, v2) { }
+        static public K2S32 FromString(string input) => XmlTypes.ValueListTypeFromString<K2S32>(input);
+        static public K2S32 FromBytes(IEnumerable<byte> input) => XmlTypes.ValueListTypeFromBytes<K2S32>(input);
+    }
+
+    [KValue(21, "2u32", Count = 2, Size = 4)]
+    public class K2U32 : KValueArray<U32>
+    {
+        public K2U32(U32 v1, U32 v2) : base(v1, v2) { }
+        static public K2U32 FromString(string input) => XmlTypes.ValueListTypeFromString<K2U32>(input);
+        static public K2U32 FromBytes(IEnumerable<byte> input) => XmlTypes.ValueListTypeFromBytes<K2U32>(input);
     }
 
     [KValue(27, "3u8", Count = 3, Size = 1)]
