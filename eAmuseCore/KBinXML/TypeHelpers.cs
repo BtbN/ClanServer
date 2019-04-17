@@ -12,6 +12,10 @@ namespace eAmuseCore.KBinXML
 
     public class KValueList<T> : List<T>, IKValue where T : IKValue
     {
+        public KValueList() : base() { }
+
+        public KValueList(params T[] values) : base(values) { }
+
         public IEnumerable<byte> ToBytes()
         {
             IEnumerable<byte> res = Enumerable.Empty<byte>();

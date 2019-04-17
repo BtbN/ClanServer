@@ -137,30 +137,11 @@ namespace eAmuseCore.KBinXML.XmlTypes
     }
 
     [KValue(13, "time", Count = 1, Size = 4)]
-    public class Time : KValue<DateTimeOffset>
+    public class Time : KValue<uint>
     {
-        public Time(DateTimeOffset value) => Value = value;
-
-        public override string ToString() => Value.ToString();
-
-        public override IEnumerable<byte> ToBytes()
-        {
-            IEnumerable<byte> res = BitConverter.GetBytes(Value.ToUnixTimeSeconds());
-            if (BitConverter.IsLittleEndian)
-                res = res.Reverse();
-            return res.Skip(4);
-        }
-
-        static public Time FromString(string input)
-        {
-            return new Time(DateTimeOffset.Parse(input));
-        }
-
-        static public Time FromBytes(IEnumerable<byte> input)
-        {
-            uint seconds = input.FirstU32();
-            return new Time(DateTimeOffset.FromUnixTimeSeconds(seconds));
-        }
+        public Time(uint value) => Value = value;
+        static public Time FromString(string input) => new Time(Convert.ToUInt32(input));
+        static public Time FromBytes(IEnumerable<byte> input) => new Time(input.FirstU32());
     }
 
     [KValue(14, "float", "f", Count = 1, Size = 4)]
@@ -212,58 +193,17 @@ namespace eAmuseCore.KBinXML.XmlTypes
     [KValue(16, "2s8", Count = 2, Size = 1)]
     public class K2S8 : KValueList<S8>
     {
-        public K2S8(S8 v1, S8 v2)
-        {
-            Add(v1);
-            Add(v2);
-        }
-
-        static public K2S8 FromString(string input)
-        {
-            string[] fields = input.Split(' ');
-            if (fields.Length != 2)
-                throw new ArgumentException("input string had invalid field count", "input");
-            return new K2S8(
-                S8.FromString(fields[0]),
-                S8.FromString(fields[1]));
-        }
-
-        static public K2S8 FromBytes(IEnumerable<byte> input)
-        {
-            return new K2S8(
-                S8.FromBytes(input.Skip(0)),
-                S8.FromBytes(input.Skip(1)));
-        }
+        public K2S8(S8 v1, S8 v2) : base(v1, v2) { }
+        static public K2S8 FromString(string input) => XmlTypes.ValueListTypeFromString<K2S8>(input);
+        static public K2S8 FromBytes(IEnumerable<byte> input) => XmlTypes.ValueListTypeFromBytes<K2S8>(input);
     }
 
     [KValue(27, "3u8", Count = 3, Size = 1)]
     public class K3U8 : KValueList<U8>
     {
-        public K3U8(U8 v1, U8 v2, U8 v3)
-        {
-            Add(v1);
-            Add(v2);
-            Add(v3);
-        }
-
-        static public K3U8 FromString(string input)
-        {
-            string[] fields = input.Split(' ');
-            if (fields.Length != 3)
-                throw new ArgumentException("input string had invalid field count", "input");
-            return new K3U8(
-                U8.FromString(fields[0]),
-                U8.FromString(fields[1]),
-                U8.FromString(fields[2]));
-        }
-
-        static public K3U8 FromBytes(IEnumerable<byte> input)
-        {
-            return new K3U8(
-                U8.FromBytes(input.Skip(0)),
-                U8.FromBytes(input.Skip(1)),
-                U8.FromBytes(input.Skip(2)));
-        }
+        public K3U8(U8 v1, U8 v2, U8 v3) : base(v1, v2, v3) { }
+        static public K3U8 FromString(string input) => XmlTypes.ValueListTypeFromString<K3U8>(input);
+        static public K3U8 FromBytes(IEnumerable<byte> input) => XmlTypes.ValueListTypeFromBytes<K3U8>(input);
     }
 
     public static class XmlTypes
@@ -320,6 +260,40 @@ namespace eAmuseCore.KBinXML.XmlTypes
 
                 return list;
             }
+        }
+
+        internal static T ValueListTypeFromString<T>(string input)
+        {
+            KValueAttribute attr = typeof(T).GetCustomAttribute<KValueAttribute>(false);
+            Type valueType = typeof(T).BaseType.GetGenericArguments()[0];
+
+            string[] vals = input.Split(' ');
+
+            if (vals.Length != attr.Count)
+                throw new ArgumentException("input string had invalid field count", "input");
+
+            IEnumerable<string> strings = vals.AsEnumerable();
+
+            object[] param = new object[attr.Count];
+            for (int i = 0; i < attr.Count; ++i)
+                param[i] = valueType.GetMethod("FromString").Invoke(null, new object[] { vals[i] });
+
+            return (T)Activator.CreateInstance(typeof(T), param);
+        }
+
+        internal static T ValueListTypeFromBytes<T>(IEnumerable<byte> input)
+        {
+            KValueAttribute attr = typeof(T).GetCustomAttribute<KValueAttribute>(false);
+            Type valueType = typeof(T).BaseType.GetGenericArguments()[0];
+
+            object[] values = new object[attr.Count];
+            for (int i = 0; i < attr.Count; ++i)
+            {
+                values[i] = valueType.GetMethod("FromBytes").Invoke(null, new object[] { input });
+                input = input.Skip(attr.Size);
+            }
+
+            return (T)Activator.CreateInstance(typeof(T), values);
         }
     }
 }
