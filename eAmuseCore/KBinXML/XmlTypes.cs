@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Net;
 using System.Text;
 using System.Collections;
+using System.Globalization;
 
 namespace eAmuseCore.KBinXML.XmlTypes
 {
@@ -162,6 +163,52 @@ namespace eAmuseCore.KBinXML.XmlTypes
         }
     }
 
+    [KValue(14, "float", "f", Count = 1, Size = 4)]
+    public class KFloat : KValue<float>
+    {
+        public KFloat(float value) => Value = value;
+
+        public override string ToString()
+        {
+            return Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        public override IEnumerable<byte> ToBytes()
+        {
+            IEnumerable<byte> res = BitConverter.GetBytes(Value);
+            if (BitConverter.IsLittleEndian)
+                res = res.Reverse();
+            return res;
+        }
+
+        static public KFloat FromString(string input) => new KFloat(Convert.ToSingle(input, CultureInfo.InvariantCulture));
+
+        static public KFloat FromBytes(IEnumerable<byte> input) => new KFloat(input.FirstF());
+    }
+
+    [KValue(15, "double", "d", Count = 1, Size = 8)]
+    public class KDouble : KValue<double>
+    {
+        public KDouble(double value) => Value = value;
+
+        public override string ToString()
+        {
+            return Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        public override IEnumerable<byte> ToBytes()
+        {
+            IEnumerable<byte> res = BitConverter.GetBytes(Value);
+            if (BitConverter.IsLittleEndian)
+                res = res.Reverse();
+            return res;
+        }
+
+        static public KDouble FromString(string input) => new KDouble(Convert.ToDouble(input, CultureInfo.InvariantCulture));
+
+        static public KDouble FromBytes(IEnumerable<byte> input) => new KDouble(input.FirstD());
+    }
+
     [KValue(27, "3u8", Count = 3, Size = 1)]
     public class K3U8 : KValueList<U8>
     {
@@ -207,7 +254,7 @@ namespace eAmuseCore.KBinXML.XmlTypes
         {
             foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
             {
-                KValueAttribute attr = type.GetCustomAttribute<KValueAttribute>(true);
+                KValueAttribute attr = type.GetCustomAttribute<KValueAttribute>(false);
                 if (attr == null)
                     continue;
 

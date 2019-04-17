@@ -46,9 +46,7 @@ namespace eAmuseTest
             else if (compress != "none")
                 throw new ArgumentException("Unsupported compression algorithm");
 
-            Console.WriteLine(BytesToString(BitConverter.GetBytes((byte)1)));
-
-            KBinXML kbinxml = new KBinXML(rawData);
+            //KBinXML kbinxml = new KBinXML(rawData);
 
             KBinXML testDoc = new KBinXML(ExtractResource("eAmuseTest.testcases_out.kbin"));
         }
