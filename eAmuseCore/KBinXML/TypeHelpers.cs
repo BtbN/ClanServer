@@ -10,23 +10,43 @@ namespace eAmuseCore.KBinXML
         IEnumerable<byte> ToBytes();
     }
 
-    public class KValueList<T> : List<T>, IKValue where T : IKValue
+    public class KValueArray<T> : IKValue where T : IKValue
     {
-        public KValueList() : base() { }
+        private T[] values;
 
-        public KValueList(params T[] values) : base(values) { }
+        public KValueArray(params T[] values)
+        {
+            this.values = values;
+        }
+
+        public T this[int idx]
+        {
+            get
+            {
+                return values[idx];
+            }
+            set
+            {
+                values[idx] = value;
+            }
+        }
+
+        public IEnumerable<T> AsEnumerable()
+        {
+            return values.AsEnumerable();
+        }
 
         public IEnumerable<byte> ToBytes()
         {
             IEnumerable<byte> res = Enumerable.Empty<byte>();
-            foreach (IKValue val in this)
+            foreach (IKValue val in values)
                 res = res.Concat(val.ToBytes());
             return res;
         }
 
         public override string ToString()
         {
-            return string.Join(" ", this.Select(v => v.ToString()));
+            return string.Join(" ", values.Select(v => v.ToString()));
         }
     }
 

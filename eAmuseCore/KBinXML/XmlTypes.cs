@@ -191,7 +191,7 @@ namespace eAmuseCore.KBinXML.XmlTypes
     }
 
     [KValue(16, "2s8", Count = 2, Size = 1)]
-    public class K2S8 : KValueList<S8>
+    public class K2S8 : KValueArray<S8>
     {
         public K2S8(S8 v1, S8 v2) : base(v1, v2) { }
         static public K2S8 FromString(string input) => XmlTypes.ValueListTypeFromString<K2S8>(input);
@@ -199,7 +199,7 @@ namespace eAmuseCore.KBinXML.XmlTypes
     }
 
     [KValue(27, "3u8", Count = 3, Size = 1)]
-    public class K3U8 : KValueList<U8>
+    public class K3U8 : KValueArray<U8>
     {
         public K3U8(U8 v1, U8 v2, U8 v3) : base(v1, v2, v3) { }
         static public K3U8 FromString(string input) => XmlTypes.ValueListTypeFromString<K3U8>(input);
@@ -248,17 +248,18 @@ namespace eAmuseCore.KBinXML.XmlTypes
             }
             else
             {
-                Type listType = typeof(KValueList<>).MakeGenericType(valType);
-                IList list = (IList)Activator.CreateInstance(listType);
+                Type listType = typeof(KValueArray<>).MakeGenericType(valType);
                 int size = attrs.Size * attrs.Count;
+
+                object[] p = new object[count];
 
                 for (int i = 0; i < count; i++)
                 {
-                    list.Add(fromBytes.Invoke(null, new object[] { data }));
+                    p[i] = fromBytes.Invoke(null, new object[] { data });
                     data = data.Skip(size);
                 }
 
-                return list;
+                return Activator.CreateInstance(listType, p);
             }
         }
 
