@@ -69,6 +69,13 @@ namespace eAmuseCore.KBinXML
             this.doc = doc;
         }
 
+        public XDocument Document => doc;
+
+        public override string ToString()
+        {
+            return doc.ToString();
+        }
+
         private void Parse(IEnumerable<byte> input)
         {
             doc = new XDocument();
@@ -265,12 +272,9 @@ namespace eAmuseCore.KBinXML
                 IEnumerable<byte> data = TakeDataAligned(totSize, isArray);
 
                 SetNodeValue(node, data, nodeAttrs, varCount, arrCount);
-
-                Console.WriteLine(fakeroot.FirstNode.ToString());
             }
 
             doc = new XDocument(fakeroot.FirstNode);
-            Console.WriteLine(doc.ToString());
         }
     }
 }
