@@ -265,6 +265,8 @@ namespace eAmuseCore.KBinXML
                 IEnumerable<byte> data = TakeDataAligned(totSize, isArray);
 
                 SetNodeValue(node, data, nodeAttrs, varCount, arrCount);
+
+                Console.WriteLine(fakeroot.FirstNode.ToString());
             }
 
             doc = new XDocument(fakeroot.FirstNode);

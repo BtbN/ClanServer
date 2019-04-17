@@ -135,6 +135,63 @@ namespace eAmuseCore.KBinXML.XmlTypes
         static public IP4 FromBytes(IEnumerable<byte> input) => new IP4(new IPAddress(input.Take(4).ToArray()));
     }
 
+    [KValue(13, "time", Count = 1, Size = 4)]
+    public class Time : KValue<DateTimeOffset>
+    {
+        public Time(DateTimeOffset value) => Value = value;
+
+        public override string ToString() => Value.ToString();
+
+        public override IEnumerable<byte> ToBytes()
+        {
+            IEnumerable<byte> res = BitConverter.GetBytes(Value.ToUnixTimeSeconds());
+            if (BitConverter.IsLittleEndian)
+                res = res.Reverse();
+            return res.Skip(4);
+        }
+
+        static public Time FromString(string input)
+        {
+            return new Time(DateTimeOffset.Parse(input));
+        }
+
+        static public Time FromBytes(IEnumerable<byte> input)
+        {
+            uint seconds = input.FirstU32();
+            return new Time(DateTimeOffset.FromUnixTimeSeconds(seconds));
+        }
+    }
+
+    [KValue(27, "3u8", Count = 3, Size = 1)]
+    public class K3U8 : KValueList<U8>
+    {
+        public K3U8(U8 v1, U8 v2, U8 v3)
+        {
+            Add(v1);
+            Add(v2);
+            Add(v3);
+        }
+
+        static public K3U8 FromString(string input)
+        {
+            string[] fields = input.Split(' ');
+            if (fields.Length != 3)
+                throw new ArgumentException("input string had invalid field count", "input");
+            return new K3U8(
+                U8.FromString(fields[0]),
+                U8.FromString(fields[1]),
+                U8.FromString(fields[2]));
+        }
+
+        static public K3U8 FromBytes(IEnumerable<byte> input)
+        {
+            return new K3U8(
+                U8.FromBytes(input.Skip(0)),
+                U8.FromBytes(input.Skip(1)),
+                U8.FromBytes(input.Skip(2)));
+        }
+    }
+
     public static class XmlTypes
     {
         public const int NodeStartType = 1;
@@ -148,25 +205,11 @@ namespace eAmuseCore.KBinXML.XmlTypes
 
         public static void RegisterAll()
         {
-            Type[] types = new[]
+            foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
             {
-                typeof(Void),
-                typeof(S8),
-                typeof(U8),
-                typeof(S16),
-                typeof(U16),
-                typeof(S32),
-                typeof(U32),
-                typeof(S64),
-                typeof(U64),
-                typeof(Bin),
-                typeof(Str),
-                typeof(IP4),
-            };
-
-            foreach (Type type in types)
-            {
-                KValueAttribute attr = type.GetCustomAttributes(typeof(KValueAttribute), true).First() as KValueAttribute;
+                KValueAttribute attr = type.GetCustomAttribute<KValueAttribute>(true);
+                if (attr == null)
+                    continue;
 
                 lookupMap[attr.NodeType] = type;
                 KValueAttribute.Register(attr);
