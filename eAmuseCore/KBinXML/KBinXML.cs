@@ -77,7 +77,6 @@ namespace eAmuseCore.KBinXML
                 throw new ArgumentException("Invalid signature", "input");
             input = input.Skip(1);
 
-            bool compressed;
             switch (input.FirstU8())
             {
                 case SIG_COMPRESSED:
@@ -100,20 +99,98 @@ namespace eAmuseCore.KBinXML
 
             encoding = GetEncoding(encodingSig);
 
-            uint nodeEnd = input.FirstU32();
+            int nodeSize = input.FirstS32();
             input = input.Skip(4);
 
-            IEnumerable<byte> nodeBuf = input.Take((int)nodeEnd);
-            IEnumerable<byte> dataBuf = input.Skip((int)nodeEnd);
+            nodeBuf = input.Take(nodeSize);
+            dataBuf = input.Skip(nodeSize);
+            dataByteBuf = dataWordBuf = Enumerable.Empty<byte>();
 
-            ParseNodes(nodeBuf, dataBuf, compressed);
+            ParseNodes();
         }
 
-        private void ParseNodes(IEnumerable<byte> nodeBuf, IEnumerable<byte> dataBuf, bool compressed)
-        {
-            IEnumerable<byte> dataByteBuf = Enumerable.Empty<byte>();
-            IEnumerable<byte> dataWordBuf = Enumerable.Empty<byte>();
+        private IEnumerable<byte> nodeBuf = Enumerable.Empty<byte>(), dataBuf = Enumerable.Empty<byte>();
+        private IEnumerable<byte> dataByteBuf = Enumerable.Empty<byte>(), dataWordBuf = Enumerable.Empty<byte>();
+        bool compressed = false;
 
+        IEnumerable<byte> TakeDataAligned(int size, bool isArray)
+        {
+            if (size <= 0)
+            {
+                return Enumerable.Empty<byte>();
+            }
+            else if (size == 1 && !isArray)
+            {
+                if (!dataByteBuf.Any())
+                {
+                    dataByteBuf = dataBuf;
+                    dataBuf = dataBuf.Skip(4);
+                }
+                var res = dataByteBuf.Take(1);
+                dataByteBuf = dataByteBuf.Skip(1);
+                return res;
+            }
+            else if (size == 2 && !isArray)
+            {
+                if (!dataWordBuf.Any())
+                {
+                    dataWordBuf = dataBuf;
+                    dataBuf = dataBuf.Skip(4);
+                }
+                var res = dataWordBuf.Take(2);
+                dataWordBuf = dataWordBuf.Skip(2);
+                return res;
+            }
+            else
+            {
+                return EnumHelpers.TakeBytesAligned(ref dataBuf, size);
+            }
+        }
+
+        void SetNodeValue(XElement node, IEnumerable<byte> data, KValueAttribute nodeAttrs, int varCount, int arrCount)
+        {
+            if (nodeAttrs.NodeType == XmlTypes.XmlTypes.BinType)
+            {
+                node.SetAttributeValue("__size", varCount);
+                node.SetValue(XmlTypes.Bin.FromBytes(data));
+            }
+            else if (nodeAttrs.NodeType == XmlTypes.XmlTypes.StrType)
+            {
+                node.SetValue(XmlTypes.Str.FromBytes(data, encoding));
+            }
+            else
+            {
+                node.SetValue(XmlTypes.XmlTypes.MakeNodeFromBytes(nodeAttrs, arrCount, data));
+            }
+        }
+
+        private string GetNodeName(byte nodeType)
+        {
+            if (nodeType != XmlTypes.XmlTypes.NodeEndType && nodeType != XmlTypes.XmlTypes.SectionEndType)
+            {
+                if (compressed)
+                {
+                    return SixBit.Unpack(ref nodeBuf);
+                }
+                else
+                {
+                    int length = (nodeBuf.First() & ~64) + 1;
+                    nodeBuf = nodeBuf.Skip(1);
+
+                    byte[] nameBytes = nodeBuf.Take(length).ToArray();
+                    nodeBuf = nodeBuf.Skip(length);
+
+                    return encoding.GetString(nameBytes);
+                }
+            }
+            else
+            {
+                return "";
+            }
+        }
+
+        private void ParseNodes()
+        {
             uint dataSize = dataBuf.FirstU32();
             dataBuf = dataBuf.Skip(4);
 
@@ -131,24 +208,7 @@ namespace eAmuseCore.KBinXML
                 bool isArray = (nodeType & 64) != 0;
                 nodeType = (byte)(nodeType & ~64);
 
-                string name = "";
-                if (nodeType != XmlTypes.XmlTypes.NodeEndType && nodeType != XmlTypes.XmlTypes.SectionEndType)
-                {
-                    if (compressed)
-                    {
-                        name = SixBit.Unpack(ref nodeBuf);
-                    }
-                    else
-                    {
-                        int length = (nodeBuf.First() & ~64) + 1;
-                        nodeBuf = nodeBuf.Skip(1);
-
-                        byte[] nameBytes = nodeBuf.Take(length).ToArray();
-                        nodeBuf = nodeBuf.Skip(length);
-
-                        name = encoding.GetString(nameBytes);
-                    }
-                }
+                string name = GetNodeName(nodeType);
 
                 KValueAttribute nodeAttrs = null;
                 bool startNode = false;
@@ -202,49 +262,9 @@ namespace eAmuseCore.KBinXML
                 int totCount = arrCount * varCount;
                 int totSize = totCount * nodeAttrs.Size;
 
-                IEnumerable<byte> data = null;
-                if (isArray || totSize > 2)
-                {
-                    data = EnumHelpers.TakeBytesAligned(ref dataBuf, totCount * nodeAttrs.Size);
-                }
-                else if (totSize == 1)
-                {
-                    if (!dataByteBuf.Any())
-                    {
-                        dataByteBuf = dataBuf;
-                        dataBuf = dataBuf.Skip(4);
-                    }
-                    data = dataByteBuf.Take(1);
-                    dataByteBuf = dataByteBuf.Skip(1);
-                }
-                else if (totSize == 2)
-                {
-                    if (!dataWordBuf.Any())
-                    {
-                        dataWordBuf = dataBuf;
-                        dataBuf = dataBuf.Skip(4);
-                    }
-                    data = dataWordBuf.Take(2);
-                    dataWordBuf = dataWordBuf.Skip(2);
-                }
-                else if (totSize == 0)
-                {
-                    continue;
-                }
+                IEnumerable<byte> data = TakeDataAligned(totSize, isArray);
 
-                if (nodeType == XmlTypes.XmlTypes.BinType)
-                {
-                    node.SetAttributeValue("__size", totCount);
-                    node.SetValue(XmlTypes.Bin.FromBytes(data));
-                }
-                else if (nodeType == XmlTypes.XmlTypes.StrType)
-                {
-                    node.SetValue(XmlTypes.Str.FromBytes(data, encoding));
-                }
-                else
-                {
-                    node.SetValue(XmlTypes.XmlTypes.MakeNodeFromBytes(nodeType, arrCount, data));
-                }
+                SetNodeValue(node, data, nodeAttrs, varCount, arrCount);
             }
 
             doc = new XDocument(fakeroot.FirstNode);

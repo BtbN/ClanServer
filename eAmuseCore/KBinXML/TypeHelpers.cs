@@ -4,8 +4,22 @@ using System.Linq;
 
 namespace eAmuseCore.KBinXML
 {
-    public class KValueList<T> : List<T>
+    public interface IKValue
     {
+        string ToString();
+        IEnumerable<byte> ToBytes();
+    }
+
+    public class KValueList<T> : List<T>, IKValue where T : IKValue
+    {
+        public IEnumerable<byte> ToBytes()
+        {
+            IEnumerable<byte> res = Enumerable.Empty<byte>();
+            foreach (IKValue val in this)
+                res = res.Concat(val.ToBytes());
+            return res;
+        }
+
         public override string ToString()
         {
             return string.Join(" ", this.Select(v => v.ToString()));
@@ -32,9 +46,8 @@ namespace eAmuseCore.KBinXML
         public int Size { get; set; }
 
 
-        private static Dictionary<string, KValueAttribute> nameLookupMap = new Dictionary<string, KValueAttribute>();
-        private static Dictionary<byte, KValueAttribute> typeLookupMap = new Dictionary<byte, KValueAttribute>();
-        private static Dictionary<byte, Type> classLookupMap = new Dictionary<byte, Type>();
+        private static readonly Dictionary<string, KValueAttribute> nameLookupMap = new Dictionary<string, KValueAttribute>();
+        private static readonly Dictionary<byte, KValueAttribute> typeLookupMap = new Dictionary<byte, KValueAttribute>();
 
         public static void Register(KValueAttribute attr)
         {
@@ -59,7 +72,7 @@ namespace eAmuseCore.KBinXML
         }
     }
 
-    public class KValue<T>
+    public class KValue<T> : IKValue
     {
         public T Value { get; set; }
 
@@ -71,7 +84,29 @@ namespace eAmuseCore.KBinXML
             return (Value != null) ? Value.ToString() : "";
         }
 
-        protected KValueAttribute KValAttr => GetType().GetCustomAttributes(typeof(KValueAttribute), true).First() as KValueAttribute;
+        public virtual IEnumerable<byte> ToBytes()
+        {
+            if (Value == null)
+                return Enumerable.Empty<byte>();
+
+            IEnumerable<byte> res = BitConverter.GetBytes(Convert.ToUInt64(Value));
+
+            if (BitConverter.IsLittleEndian)
+                res = res.Reverse();
+
+            return res.Skip(8 - Size);
+        }
+
+        protected KValueAttribute KValAttr
+        {
+            get
+            {
+                var res = GetType().GetCustomAttributes(typeof(KValueAttribute), true).FirstOrDefault() as KValueAttribute;
+                if (res == null)
+                    throw new InvalidOperationException("KValue types need KValueAttributes!");
+                return res;
+            }
+        }
 
         public int NodeType => KValAttr.NodeType;
 

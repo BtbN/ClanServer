@@ -8,13 +8,16 @@ using System.Collections;
 
 namespace eAmuseCore.KBinXML.XmlTypes
 {
+#pragma warning disable IDE0060 // Remove unused parameter
     [KValue(1, "void", Count = 1, Size = 0)]
     public class Void : KValue<object>
     {
         public Void(object _) => Value = null;
-        static public Void FromString(object _) => new Void(null);
+        static public Void FromString(string input) => new Void(null);
+
         static public Void FromBytes(IEnumerable<byte> input) => new Void(null);
     }
+#pragma warning restore IDE0060
 
     [KValue(2, "s8", Count = 1, Size = 1)]
     public class S8 : KValue<sbyte>
@@ -90,6 +93,8 @@ namespace eAmuseCore.KBinXML.XmlTypes
             return string.Join("", Value.Select(b => Convert.ToString(b, 16).PadLeft(2, '0')));
         }
 
+        public override IEnumerable<byte> ToBytes() => Value;
+
         static public Bin FromString(string input)
         {
             throw new NotImplementedException();
@@ -104,6 +109,8 @@ namespace eAmuseCore.KBinXML.XmlTypes
         public Str(string value) => Value = value;
 
         public override string ToString() => Value;
+
+        public override IEnumerable<byte> ToBytes() => Encoding.UTF8.GetBytes(Value);
 
         static public Str FromString(string input) => new Str(input);
 
@@ -121,6 +128,8 @@ namespace eAmuseCore.KBinXML.XmlTypes
 
         public override string ToString() => Value.ToString();
 
+        public override IEnumerable<byte> ToBytes() => Value.GetAddressBytes();
+
         static public IP4 FromString(string input) => new IP4(IPAddress.Parse(input));
 
         static public IP4 FromBytes(IEnumerable<byte> input) => new IP4(new IPAddress(input.Take(4).ToArray()));
@@ -135,7 +144,7 @@ namespace eAmuseCore.KBinXML.XmlTypes
         public const int NodeEndType = 190;
         public const int SectionEndType = 191;
 
-        private static Dictionary<byte, Type> lookupMap = new Dictionary<byte, Type>();
+        private static readonly Dictionary<byte, Type> lookupMap = new Dictionary<byte, Type>();
 
         public static void RegisterAll()
         {
@@ -171,9 +180,9 @@ namespace eAmuseCore.KBinXML.XmlTypes
             return lookupMap[type];
         }
 
-        public static object MakeNodeFromBytes(byte type, int count, IEnumerable<byte> data)
+        public static object MakeNodeFromBytes(KValueAttribute attrs, int count, IEnumerable<byte> data)
         {
-            Type valType = GetByType(type);
+            Type valType = GetByType(attrs.NodeType);
             MethodInfo fromBytes = valType.GetMethod("FromBytes", BindingFlags.Static | BindingFlags.Public);
 
             if (count <= 1)
@@ -184,8 +193,7 @@ namespace eAmuseCore.KBinXML.XmlTypes
             {
                 Type listType = typeof(KValueList<>).MakeGenericType(valType);
                 IList list = (IList)Activator.CreateInstance(listType);
-                var attr = KValueAttribute.GetAttrByType(type);
-                int size = attr.Size * attr.Count;
+                int size = attrs.Size * attrs.Count;
 
                 for (int i = 0; i < count; i++)
                 {
