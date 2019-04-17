@@ -263,21 +263,43 @@ namespace eAmuseCore.KBinXML.XmlTypes
             }
         }
 
+        public static IKValue ValueListFromString(Type type, string input, int count)
+        {
+            Type listType = typeof(KValueArray<>).MakeGenericType(type);
+            KValueAttribute attr = type.GetCustomAttribute<KValueAttribute>(false);
+            var fromString = type.GetMethod("FromString");
+
+            string[] vals = input.Split(' ');
+            IEnumerable<string> strings = vals.AsEnumerable();
+
+            if (vals.Length != attr.Count * count)
+                throw new ArgumentException("input string had invalid field count", "input");
+
+            object[] mainParams = new object[count];
+
+            for (int i = 0; i < count; ++i)
+            {
+                mainParams[i] = fromString.Invoke(null, new object[] { string.Join(" ", strings.Take(attr.Count)) });
+                strings = strings.Skip(attr.Count);
+            }
+
+            return (IKValue)Activator.CreateInstance(listType, mainParams);
+        }
+
         internal static T ValueListTypeFromString<T>(string input)
         {
             KValueAttribute attr = typeof(T).GetCustomAttribute<KValueAttribute>(false);
             Type valueType = typeof(T).BaseType.GetGenericArguments()[0];
+            var fromString = valueType.GetMethod("FromString");
 
             string[] vals = input.Split(' ');
 
             if (vals.Length != attr.Count)
                 throw new ArgumentException("input string had invalid field count", "input");
 
-            IEnumerable<string> strings = vals.AsEnumerable();
-
             object[] param = new object[attr.Count];
             for (int i = 0; i < attr.Count; ++i)
-                param[i] = valueType.GetMethod("FromString").Invoke(null, new object[] { vals[i] });
+                param[i] = fromString.Invoke(null, new object[] { vals[i] });
 
             return (T)Activator.CreateInstance(typeof(T), param);
         }
@@ -286,11 +308,12 @@ namespace eAmuseCore.KBinXML.XmlTypes
         {
             KValueAttribute attr = typeof(T).GetCustomAttribute<KValueAttribute>(false);
             Type valueType = typeof(T).BaseType.GetGenericArguments()[0];
+            var fromBytes = valueType.GetMethod("FromBytes");
 
             object[] values = new object[attr.Count];
             for (int i = 0; i < attr.Count; ++i)
             {
-                values[i] = valueType.GetMethod("FromBytes").Invoke(null, new object[] { input });
+                values[i] = fromBytes.Invoke(null, new object[] { input });
                 input = input.Skip(attr.Size);
             }
 
