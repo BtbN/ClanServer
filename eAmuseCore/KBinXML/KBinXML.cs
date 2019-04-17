@@ -123,7 +123,7 @@ namespace eAmuseCore.KBinXML
             {
                 if (!dataByteBuf.Any())
                 {
-                    dataByteBuf = dataBuf;
+                    dataByteBuf = dataBuf.Take(4);
                     dataBuf = dataBuf.Skip(4);
                 }
                 var res = dataByteBuf.Take(1);
@@ -134,7 +134,7 @@ namespace eAmuseCore.KBinXML
             {
                 if (!dataWordBuf.Any())
                 {
-                    dataWordBuf = dataBuf;
+                    dataWordBuf = dataBuf.Take(4);
                     dataBuf = dataBuf.Skip(4);
                 }
                 var res = dataWordBuf.Take(2);

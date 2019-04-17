@@ -209,6 +209,33 @@ namespace eAmuseCore.KBinXML.XmlTypes
         static public KDouble FromBytes(IEnumerable<byte> input) => new KDouble(input.FirstD());
     }
 
+    [KValue(16, "2s8", Count = 2, Size = 1)]
+    public class K2S8 : KValueList<S8>
+    {
+        public K2S8(S8 v1, S8 v2)
+        {
+            Add(v1);
+            Add(v2);
+        }
+
+        static public K2S8 FromString(string input)
+        {
+            string[] fields = input.Split(' ');
+            if (fields.Length != 2)
+                throw new ArgumentException("input string had invalid field count", "input");
+            return new K2S8(
+                S8.FromString(fields[0]),
+                S8.FromString(fields[1]));
+        }
+
+        static public K2S8 FromBytes(IEnumerable<byte> input)
+        {
+            return new K2S8(
+                S8.FromBytes(input.Skip(0)),
+                S8.FromBytes(input.Skip(1)));
+        }
+    }
+
     [KValue(27, "3u8", Count = 3, Size = 1)]
     public class K3U8 : KValueList<U8>
     {
