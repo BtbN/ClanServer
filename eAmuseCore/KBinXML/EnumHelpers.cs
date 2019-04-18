@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace eAmuseCore.KBinXML
+namespace eAmuseCore.KBinXML.Helpers
 {
     static class EnumHelpers
     {
@@ -163,9 +163,30 @@ namespace eAmuseCore.KBinXML
             return input.TakeD(1).First();
         }
 
-        public static IEnumerable<object> Box<T>(this IEnumerable<T> input)
+        public static void AddU8(this List<byte> list, byte data)
         {
-            return input.Select(v => (object)v);
+            list.Add(data);
+        }
+
+        public static void AddS8(this List<byte> list, sbyte data)
+        {
+            list.Add(unchecked((byte)data));
+        }
+
+        public static  void AddU32(this List<byte> list, uint data)
+        {
+            IEnumerable<byte> bytes = BitConverter.GetBytes(data);
+            if (BitConverter.IsLittleEndian)
+                bytes = bytes.Reverse();
+            list.AddRange(bytes);
+        }
+
+        public static void AddS32(this List<byte> list, int data)
+        {
+            IEnumerable<byte> bytes = BitConverter.GetBytes(data);
+            if (BitConverter.IsLittleEndian)
+                bytes = bytes.Reverse();
+            list.AddRange(bytes);
         }
 
         public static IEnumerable<byte> TakeBytesAligned(ref IEnumerable<byte> input, int size = -1)

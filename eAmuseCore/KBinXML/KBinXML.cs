@@ -2,8 +2,9 @@
 using System.Text;
 using System.Linq;
 using System.Xml.Linq;
-using System.Reflection;
 using System.Collections.Generic;
+
+using eAmuseCore.KBinXML.Helpers;
 
 namespace eAmuseCore.KBinXML
 {
@@ -59,6 +60,19 @@ namespace eAmuseCore.KBinXML
         public IEnumerable<byte> Bytes { get; private set; }
         public Encoding BinEncoding { get; private set; }
 
+        public KBinXML(XDocument doc, Encoding encoding, bool compress = true)
+        {
+            Document = doc;
+            compressed = compress;
+            BinEncoding = encoding;
+
+            Generate();
+        }
+
+        public KBinXML(XDocument doc, bool compress = true)
+            :this(doc, Encoding.GetEncoding(932), compress)
+        { }
+
         public KBinXML(IEnumerable<byte> input)
         {
             Bytes = input;
@@ -66,24 +80,18 @@ namespace eAmuseCore.KBinXML
             Parse();
         }
 
-        public KBinXML(XDocument doc, Encoding encoding, bool compress = true)
-        {
-            Document = doc;
-            compressed = compress;
-            BinEncoding = encoding;
-        }
-
-        public KBinXML(XDocument doc, bool compress = true)
-        {
-            Document = doc;
-            compressed = compress;
-            BinEncoding = Encoding.GetEncoding(932);
-        }
-
         public override string ToString()
         {
             return Document.ToString();
         }
+
+        private void Generate()
+        {
+            List<byte> header = new List<byte>(8);
+        }
+
+        private List<byte> nodeList = null, dataList = null;
+        private int dataByteOffset = 0, dataWordOffset = 0;
 
         private void Parse()
         {

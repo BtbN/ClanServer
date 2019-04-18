@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace eAmuseCore.KBinXML
+namespace eAmuseCore.KBinXML.Helpers
 {
     public interface IKValue
     {

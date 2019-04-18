@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Net;
 using System.Text;
-using System.Collections;
 using System.Globalization;
+
+using eAmuseCore.KBinXML.Helpers;
 
 namespace eAmuseCore.KBinXML.XmlTypes
 {

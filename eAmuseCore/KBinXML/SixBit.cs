@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.Collections;
 using System.Numerics;
-using System.Text;
 using System.Linq;
 using System;
+
+using eAmuseCore.KBinXML.Helpers;
 
 namespace eAmuseCore.KBinXML
 {
