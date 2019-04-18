@@ -189,27 +189,38 @@ namespace eAmuseCore.KBinXML.Helpers
             list.AddRange(bytes);
         }
 
-        public static IEnumerable<byte> TakeBytesAligned(ref IEnumerable<byte> input, int size = -1)
+        public static void Realign(this List<byte> list, int alignment = 4)
         {
-            if (size < 0)
-            {
-                size = input.FirstS32();
-                input = input.Skip(4);
-            }
+            int align = alignment - (list.Count % alignment);
+            if (align == alignment)
+                return;
+            while (align-- > 0)
+                list.Add(0);
+        }
 
+        public static void AddRangeAligned(this List<byte> list, IEnumerable<byte> data, int alignment = 4)
+        {
+            list.AddRange(data);
+            list.Realign(alignment);
+        }
+
+        public static IEnumerable<byte> TakeBytesAligned(ref IEnumerable<byte> input, int size, int alignment = 4)
+        {
             var res = input.Take(size);
             input = input.Skip(size);
 
-            int align = 4 - (size % 4);
-            if (align != 4)
+            int align = alignment - (size % alignment);
+            if (align != alignment)
                 input = input.Skip(align);
 
             return res;
         }
 
-        public static string TakeStringAligned(ref IEnumerable<byte> input, Encoding encoding, int size = -1)
+        public static string TakeStringAligned(ref IEnumerable<byte> input, Encoding encoding, int alignment = 4)
         {
-            byte[] data = TakeBytesAligned(ref input, size).ToArray();
+            int size = input.FirstS32();
+            input = input.Skip(4);
+            byte[] data = TakeBytesAligned(ref input, size, alignment).ToArray();
             return encoding.GetString(data, 0, data.Length - 1); // drop final null byte
         }
     }

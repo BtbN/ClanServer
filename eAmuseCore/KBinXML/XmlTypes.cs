@@ -99,7 +99,7 @@ namespace eAmuseCore.KBinXML.XmlTypes
 
         static public Bin FromString(string input)
         {
-            if ((input.Length % 2) != 2)
+            if ((input.Length % 2) != 0)
                 throw new ArgumentException("Hex string needs to consist of pairs of two chars.", "input");
             byte[] res = new byte[input.Length / 2];
             for (int i = 0, j = 0; i < input.Length; i += 2, ++j)
@@ -118,6 +118,8 @@ namespace eAmuseCore.KBinXML.XmlTypes
         public override string ToString() => Value;
 
         public override IEnumerable<byte> ToBytes() => Encoding.UTF8.GetBytes(Value);
+
+        public IEnumerable<byte> ToBytes(Encoding encoding) => encoding.GetBytes(Value);
 
         static public Str FromString(string input) => new Str(input);
 
@@ -527,7 +529,7 @@ namespace eAmuseCore.KBinXML.XmlTypes
 
     public static class XmlTypes
     {
-        public const int NodeStartType = 1;
+        public const int VoidType = 1;
         public const int BinType = 10;
         public const int StrType = 11;
         public const int AttrType = 46;
@@ -583,7 +585,7 @@ namespace eAmuseCore.KBinXML.XmlTypes
             }
         }
 
-        public static IKValue ValueListFromString(Type type, string input, int count)
+        public static IKValue KValueFromString(Type type, string input, int count)
         {
             Type listType = typeof(KValueArray<>).MakeGenericType(type);
             KValueAttribute attr = type.GetCustomAttribute<KValueAttribute>(false);
@@ -595,13 +597,16 @@ namespace eAmuseCore.KBinXML.XmlTypes
             if (vals.Length != attr.Count * count)
                 throw new ArgumentException("input string had invalid field count", "input");
 
-            object[] mainParams = new object[count];
+            IKValue[] mainParams = new IKValue[count];
 
             for (int i = 0; i < count; ++i)
             {
-                mainParams[i] = fromString.Invoke(null, new object[] { string.Join(" ", strings.Take(attr.Count)) });
+                mainParams[i] = (IKValue)fromString.Invoke(null, new object[] { string.Join(" ", strings.Take(attr.Count)) });
                 strings = strings.Skip(attr.Count);
             }
+
+            if (count == 1)
+                return mainParams[0];
 
             return (IKValue)Activator.CreateInstance(listType, mainParams);
         }

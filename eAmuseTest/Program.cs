@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using eAmuseCore.Crypto;
 using eAmuseCore.Compression;
 using eAmuseCore.KBinXML;
+using eAmuseCore.KBinXML;
+using System.Xml.Linq;
 
 namespace eAmuseTest
 {
@@ -47,9 +49,20 @@ namespace eAmuseTest
                 throw new ArgumentException("Unsupported compression algorithm");
 
             KBinXML kbinxml = new KBinXML(rawData);
-            KBinXML testDoc = new KBinXML(ExtractResource("eAmuseTest.testcases_out.kbin"));
+            //KBinXML testDoc = new KBinXML(ExtractResource("eAmuseTest.testcases_out.kbin"));
 
-            Console.WriteLine(testDoc.ToString());
+            KBinXML reverseTest = new KBinXML(kbinxml.Document);
+
+            Console.WriteLine(kbinxml);
+
+            Console.WriteLine("Orig: " + BytesToString(rawData));
+            Console.WriteLine("Len: " + rawData.Count());
+            Console.WriteLine("Mine: " + BytesToString(reverseTest.Bytes));
+            Console.WriteLine("Len: " + reverseTest.Bytes.Count());
+
+            KBinXML reReverseText = new KBinXML(reverseTest.Bytes);
+
+            Console.WriteLine(reReverseText);
         }
 
         private static string BytesToString(IEnumerable<byte> bytes)

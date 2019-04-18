@@ -4,10 +4,11 @@ using System.Linq;
 using System;
 
 using eAmuseCore.KBinXML.Helpers;
+using System.Text;
 
 namespace eAmuseCore.KBinXML
 {
-    static class SixBit
+    public static class SixBit
     {
         static readonly string charmap = "0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
         static readonly Dictionary<char, byte> bytemap = new Dictionary<char, byte>();
@@ -23,7 +24,10 @@ namespace eAmuseCore.KBinXML
             if (input.Length > byte.MaxValue)
                 throw new ArgumentException("input string is too long", "input");
 
-            int padding = (8 - (input.Length * 6)) % 8;
+            int length_bits = input.Length * 6;
+            int length_bytes = (length_bits + 7) / 8;
+            int padding = (8 - (length_bits % 8)) % 8;
+
             BigInteger bits = new BigInteger(0);
 
             try
@@ -41,7 +45,7 @@ namespace eAmuseCore.KBinXML
 
             bits <<= padding;
 
-            return bits.ToByteArray().Append((byte)input.Length).Reverse().ToArray();
+            return bits.ToByteArray().Take(length_bytes).Append((byte)input.Length).Reverse().ToArray();
         }
 
         public static string Unpack(byte[] data)

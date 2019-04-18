@@ -113,12 +113,18 @@ namespace eAmuseCore.KBinXML.Helpers
             if (Value == null)
                 return Enumerable.Empty<byte>();
 
-            IEnumerable<byte> res = BitConverter.GetBytes(Convert.ToUInt64(Value));
+            dynamic v = Value;
+            Type t = v.GetType();
+
+            if (t == typeof(byte) || t == typeof(sbyte))
+                return new byte[] { unchecked((byte)v) };
+
+            IEnumerable<byte> res = BitConverter.GetBytes(v);
 
             if (BitConverter.IsLittleEndian)
                 res = res.Reverse();
 
-            return res.Skip(8 - Size);
+            return res;
         }
 
         protected KValueAttribute KValAttr
