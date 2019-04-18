@@ -36,7 +36,7 @@ namespace eAmuseCore.KBinXML
             }
             catch (KeyNotFoundException)
             {
-                throw new ArgumentException("input string contains invalid sixbit characters.", "input");
+                throw new ArgumentException("Input string contains invalid sixbit characters.", "input");
             }
 
             bits <<= padding;

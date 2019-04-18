@@ -55,30 +55,40 @@ namespace eAmuseCore.KBinXML
             throw new ArgumentException("Unsupported encoding", "enc");
         }
 
-        private XDocument doc;
-        private Encoding encoding;
+        public XDocument Document { get; private set; }
+        public IEnumerable<byte> Bytes { get; private set; }
+        public Encoding BinEncoding { get; private set; }
 
         public KBinXML(IEnumerable<byte> input)
         {
-            
-            Parse(input);
+            Bytes = input;
+
+            Parse();
         }
 
-        public KBinXML(XDocument doc)
+        public KBinXML(XDocument doc, Encoding encoding, bool compress = true)
         {
-            this.doc = doc;
+            Document = doc;
+            compressed = compress;
+            BinEncoding = encoding;
         }
 
-        public XDocument Document => doc;
+        public KBinXML(XDocument doc, bool compress = true)
+        {
+            Document = doc;
+            compressed = compress;
+            BinEncoding = Encoding.GetEncoding(932);
+        }
 
         public override string ToString()
         {
-            return doc.ToString();
+            return Document.ToString();
         }
 
-        private void Parse(IEnumerable<byte> input)
+        private void Parse()
         {
-            doc = new XDocument();
+            IEnumerable<byte> input = Bytes;
+            Document = new XDocument();
 
             if (input.FirstU8() != SIGNATURE)
                 throw new ArgumentException("Invalid signature", "input");
@@ -104,16 +114,20 @@ namespace eAmuseCore.KBinXML
                 throw new ArgumentException("Encoding signature failed to verify", "input");
             input = input.Skip(1);
 
-            encoding = GetEncoding(encodingSig);
+            BinEncoding = GetEncoding(encodingSig);
 
-            int nodeSize = input.FirstS32();
+            uint nodesSize = input.FirstU32();
             input = input.Skip(4);
 
-            nodeBuf = input.Take(nodeSize);
-            dataBuf = input.Skip(nodeSize);
+            nodeBuf = input.Take((int)nodesSize);
+            dataBuf = input.Skip((int)nodesSize);
             dataByteBuf = dataWordBuf = Enumerable.Empty<byte>();
 
             ParseNodes();
+
+            nodeBuf = dataBuf = null;
+            dataByteBuf = dataWordBuf = null;
+            Bytes = Bytes.ToArray();
         }
 
         private IEnumerable<byte> nodeBuf = Enumerable.Empty<byte>(), dataBuf = Enumerable.Empty<byte>();
@@ -163,7 +177,7 @@ namespace eAmuseCore.KBinXML
             }
             else if (nodeAttrs.NodeType == XmlTypes.XmlTypes.StrType)
             {
-                node.SetValue(XmlTypes.Str.FromBytes(data, encoding));
+                node.SetValue(XmlTypes.Str.FromBytes(data, BinEncoding));
             }
             else
             {
@@ -187,7 +201,7 @@ namespace eAmuseCore.KBinXML
                     byte[] nameBytes = nodeBuf.Take(length).ToArray();
                     nodeBuf = nodeBuf.Skip(length);
 
-                    return encoding.GetString(nameBytes);
+                    return BinEncoding.GetString(nameBytes);
                 }
             }
             else
@@ -223,7 +237,7 @@ namespace eAmuseCore.KBinXML
                 switch (nodeType)
                 {
                     case XmlTypes.XmlTypes.AttrType:
-                        string attrVal = EnumHelpers.TakeStringAligned(ref dataBuf, encoding);
+                        string attrVal = EnumHelpers.TakeStringAligned(ref dataBuf, BinEncoding);
                         node.SetAttributeValue(name, attrVal);
                         break;
                     case XmlTypes.XmlTypes.NodeEndType:
@@ -274,7 +288,7 @@ namespace eAmuseCore.KBinXML
                 SetNodeValue(node, data, nodeAttrs, varCount, arrCount);
             }
 
-            doc = new XDocument(fakeroot.FirstNode);
+            Document = new XDocument(fakeroot.FirstNode);
         }
     }
 }
