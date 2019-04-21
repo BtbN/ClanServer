@@ -1,10 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
-using System.Linq;
 using System;
-
-using eAmuseCore.KBinXML.Helpers;
-using System.Text;
 
 namespace eAmuseCore.KBinXML
 {
@@ -32,10 +28,10 @@ namespace eAmuseCore.KBinXML
 
             try
             {
-                foreach (byte i in input.Select(c => bytemap[c]))
+                foreach (char c in input)
                 {
                     bits <<= 6;
-                    bits |= i;
+                    bits |= bytemap[c];
                 }
             }
             catch (KeyNotFoundException)
@@ -45,27 +41,31 @@ namespace eAmuseCore.KBinXML
 
             bits <<= padding;
 
-            return bits.ToByteArray().Take(length_bytes).Append((byte)input.Length).Reverse().ToArray();
+            byte[] res = new byte[length_bytes + 1];
+            Buffer.BlockCopy(bits.ToByteArray(), 0, res, 1, length_bytes);
+            Array.Reverse(res, 1, length_bytes);
+            res[0] = (byte)input.Length;
+
+            return res;
         }
 
         public static string Unpack(byte[] data)
         {
-            IEnumerable<byte> nodeBuf = data.AsEnumerable();
-            return Unpack(ref nodeBuf);
+            return Unpack(new ByteBuffer(data));
         }
 
-        public static string Unpack(ref IEnumerable<byte> nodeBuf)
+        public static string Unpack(ByteBuffer nodeBuf)
         {
-            int length = nodeBuf.FirstU8();
-            nodeBuf = nodeBuf.Skip(1);
+            int length = nodeBuf.TakeU8();
 
             int length_bits = length * 6;
             int length_bytes = (length_bits + 7) / 8;
             int padding = (8 - (length_bits % 8)) % 8;
 
-            // bytes are in big endian order, BigInteger expects little endian, hence .Reverse() it.
-            BigInteger bits = new BigInteger(nodeBuf.TakeU8(length_bytes).Reverse().ToArray());
-            nodeBuf = nodeBuf.Skip(length_bytes);
+            byte[] bytes = nodeBuf.TakeBytes(length_bytes);
+            Array.Reverse(bytes);
+            BigInteger bits = new BigInteger(bytes);
+
             bits >>= padding;
 
             char[] res = new char[length];

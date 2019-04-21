@@ -1,17 +1,14 @@
 ﻿using System;
+using System.Net;
 using System.Linq;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Net;
-using System.Text;
-using System.Globalization;
 
 using eAmuseCore.KBinXML.Helpers;
 
 namespace eAmuseCore.KBinXML
 {
-    public delegate string KBinToString(IEnumerable<byte> input);
-    public delegate IEnumerable<byte> KBinFromString(string input);
+    public delegate string KBinToString(byte[] input, int offset);
+    public delegate byte[] KBinFromString(string[] input, int offset);
 
     public class KBinConverter
     {
@@ -24,22 +21,32 @@ namespace eAmuseCore.KBinXML
         public KBinFromString KFromString { get; }
         public KBinToString KToString { get; }
 
-        public static KBinConverter S8 = new KBinConverter(s => Convert.ToSByte(s).ToBytes(), b => b.FirstS8().ToString());
-        public static KBinConverter U8 = new KBinConverter(s => Convert.ToByte(s).ToBytes(), b => b.FirstU8().ToString());
-        public static KBinConverter S16 = new KBinConverter(s => Convert.ToInt16(s).ToBytes(), b => b.FirstS16().ToString());
-        public static KBinConverter U16 = new KBinConverter(s => Convert.ToUInt16(s).ToBytes(), b => b.FirstU16().ToString());
-        public static KBinConverter S32 = new KBinConverter(s => Convert.ToInt32(s).ToBytes(), b => b.FirstS32().ToString());
-        public static KBinConverter U32 = new KBinConverter(s => Convert.ToUInt32(s).ToBytes(), b => b.FirstU32().ToString());
-        public static KBinConverter S64 = new KBinConverter(s => Convert.ToInt64(s).ToBytes(), b => b.FirstS64().ToString());
-        public static KBinConverter U64 = new KBinConverter(s => Convert.ToUInt64(s).ToBytes(), b => b.FirstU64().ToString());
+        public static KBinConverter S8 = new KBinConverter((s, o) => Convert.ToSByte(s[o]).ToBytes(), (b, o) => b.GetS8(o).ToString());
+        public static KBinConverter U8 = new KBinConverter((s, o) => Convert.ToByte(s[o]).ToBytes(), (b, o) => b.GetU8(o).ToString());
+        public static KBinConverter S16 = new KBinConverter((s, o) => Convert.ToInt16(s[o]).ToBytes(), (b, o) => b.GetS16(o).ToString());
+        public static KBinConverter U16 = new KBinConverter((s, o) => Convert.ToUInt16(s[o]).ToBytes(), (b, o) => b.GetU16(o).ToString());
+        public static KBinConverter S32 = new KBinConverter((s, o) => Convert.ToInt32(s[o]).ToBytes(), (b, o) => b.GetS32(o).ToString());
+        public static KBinConverter U32 = new KBinConverter((s, o) => Convert.ToUInt32(s[o]).ToBytes(), (b, o) => b.GetU32(o).ToString());
+        public static KBinConverter S64 = new KBinConverter((s, o) => Convert.ToInt64(s[o]).ToBytes(), (b, o) => b.GetS64(o).ToString());
+        public static KBinConverter U64 = new KBinConverter((s, o) => Convert.ToUInt64(s[o]).ToBytes(), (b, o) => b.GetU64(o).ToString());
 
-        public static KBinConverter KFloat = new KBinConverter(s => Convert.ToSingle(s).ToBytes(), b => b.FirstF().ToString());
-        public static KBinConverter KDouble = new KBinConverter(s => Convert.ToDouble(s).ToBytes(), b => b.FirstD().ToString());
+        public static KBinConverter KFloat = new KBinConverter((s, o) => Convert.ToSingle(s[o]).ToBytes(), (b, o) => b.GetFloat(o).ToString());
+        public static KBinConverter KDouble = new KBinConverter((s, o) => Convert.ToDouble(s[o]).ToBytes(), (b, o) => b.GetDouble(o).ToString());
 
-        public static KBinConverter IP4 = new KBinConverter(s => IPAddress.Parse(s).GetAddressBytes(), b => new IPAddress(b.Take(4).ToArray()).ToString());
-        public static KBinConverter Bool = new KBinConverter(s => new byte[] { s.ToBool() ? (byte)1 : (byte)0 }, b => (b.FirstU8() != 0) ? "1" : "0");
+        public static KBinConverter IP4 = new KBinConverter((s, o) => IPAddress.Parse(s[o]).GetAddressBytes(), (b, o) =>
+        {
+            byte[] buf = b;
+            if (buf.Length != 4)
+            {
+                buf = new byte[4];
+                Buffer.BlockCopy(b, o, buf, 0, 4);
+            }
+            return new IPAddress(buf).ToString();
+        });
 
-        public static KBinConverter Invalid = new KBinConverter(s => throw new InvalidOperationException(), b => throw new InvalidOperationException());
+        public static KBinConverter Bool = new KBinConverter((s, o) => new byte[] { s[o].ToBool() ? (byte)1 : (byte)0 }, (b, o) => (b.GetU8(o) != 0) ? "1" : "0");
+
+        public static KBinConverter Invalid = new KBinConverter((s, o) => throw new InvalidOperationException(), (b, o) => throw new InvalidOperationException());
     }
 
     public class XmlType
@@ -82,21 +89,19 @@ namespace eAmuseCore.KBinXML
             return this;
         }
 
-        public IEnumerable<byte> KFromString(string input)
+        public byte[] KFromString(string[] input, int offset)
         {
             if (input.Length == 0)
                 return new byte[0];
-            return Converter.KFromString(input);
+            return Converter.KFromString(input, offset);
         }
 
-        public string KToString(IEnumerable<byte> input)
+        public string KToString(byte[] input, int offset)
         {
-            input = input.Take(Size);
-            ICollection<byte> col = input as ICollection<byte>;
-            if (col != null && col.Count != Size)
+            if (input.Length - offset < Size)
                 throw new ArgumentException("input does not provide enough data", "input");
 
-            return Converter.KToString(input);
+            return Converter.KToString(input, offset);
         }
 
         private XmlType Times(int count)
@@ -106,30 +111,24 @@ namespace eAmuseCore.KBinXML
 
             string[] names = Names.Select(name => count.ToString() + name).ToArray();
             int size = Size * count;
-            KBinFromString fromString = s =>
+            KBinFromString fromString = (s, o) =>
             {
-                string[] elems = s.Split(' ');
-                if (elems.Length != count)
-                    throw new ArgumentException("input does not split into correct element count", "s");
+                if (s.Length - o < count)
+                    throw new ArgumentException("input does not contain enough elements");
 
-                IEnumerable<byte> res = Enumerable.Empty<byte>();
-                foreach (string elem in elems)
-                    res = res.Concat(Converter.KFromString(elem));
+                byte[] res = new byte[size];
+                
+                for (int i = 0; i < count; ++i)
+                    Buffer.BlockCopy(Converter.KFromString(s, o + i), 0, res, i * Size, Size);
+
                 return res;
             };
-            KBinToString toString = b =>
+            KBinToString toString = (b, o) =>
             {
-                IEnumerable<byte> data = b.Take(size);
-                ICollection<byte> col = data as ICollection<byte>;
-                if (col != null && col.Count != size)
-                    throw new ArgumentException("input does not provide enough data for all elements", "b");
-
                 string[] res = new string[count];
                 for (int i = 0; i < count; ++i)
-                {
-                    res[i] = Converter.KToString(data.Take(Size));
-                    data = data.Skip(Size);
-                }
+                    res[i] = Converter.KToString(b, i * Size + o);
+
                 return string.Join(" ", res);
             };
 

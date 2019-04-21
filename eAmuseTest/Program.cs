@@ -32,6 +32,10 @@ namespace eAmuseTest
 
             KBinXML kbinxml = new KBinXML(rawData.ToArray());
 
+            kbinxml = new KBinXML(kbinxml.Document);
+
+            kbinxml = new KBinXML(kbinxml.Bytes);
+
             Console.WriteLine(kbinxml);
         }
 
