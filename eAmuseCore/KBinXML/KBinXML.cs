@@ -17,7 +17,6 @@ namespace eAmuseCore.KBinXML
         static KBinXML()
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            XmlTypes.XmlTypes.RegisterAll();
         }
 
         private static Encoding GetEncoding(byte sig)
@@ -105,7 +104,7 @@ namespace eAmuseCore.KBinXML
 
             GenerateNode(Document.Root);
 
-            nodeList.AddU8(XmlTypes.XmlTypes.SectionEndType | 64);
+            nodeList.AddU8(XmlType.SectionEndType | 64);
             nodeList.Realign();
 
             header.AddU32((uint)nodeList.Count);
@@ -188,23 +187,65 @@ namespace eAmuseCore.KBinXML
             dataList.Realign();
         }
 
+        private IEnumerable<byte> GetNodeData(XElement node, byte nodeType, XmlType xmlType, int count)
+        {
+            if (nodeType == XmlType.StrType)
+            {
+                if (count != 1)
+                    throw new FormatException("String value cannot have a count != 1.");
+
+                return BinEncoding.GetBytes(node.Value).Concat(new byte[] { 0 });
+            }
+            else if (nodeType == XmlType.BinType)
+            {
+                string val = node.Value;
+                if ((val.Length % 2) != 0)
+                    throw new ArgumentException("Hex string needs to consist of pairs of two chars.");
+
+                byte[] res = new byte[val.Length / 2];
+                for (int i = 0, j = 0; i < val.Length; i += 2, ++j)
+                    res[j] = Convert.ToByte(val.Substring(i, 2), 16);
+
+                return res;
+            }
+            else
+            {
+                IEnumerable<string> parts = node.Value.Split(' ').AsEnumerable();
+                if (parts.Count() != count * xmlType.Count)
+                    throw new ArgumentException("Node value does not have required amount of fields.", "node");
+
+                IEnumerable<byte> res = Enumerable.Empty<byte>();
+                for (int i = 0; i < count; ++i)
+                {
+                    res = res.Concat(
+                        xmlType.KFromString(
+                            string.Join(" ", parts.Take(xmlType.Count))));
+                    parts = parts.Skip(xmlType.Count);
+                }
+
+                return res;
+            }
+        }
+
         private void GenerateNode(XElement node)
         {
             if (NodeIsMixed(node))
                 throw new ArgumentException("Nodes with mixed elements/text are not supported.", "node");
 
             XAttribute nodeTypeXAttr = node.Attribute("__type");
-            KValueAttribute nodeTypeAttrs;
+            byte nodeType;
+            XmlType xmlType = null;
             if (nodeTypeXAttr != null)
             {
-                nodeTypeAttrs = KValueAttribute.GetAttrByName(nodeTypeXAttr.Value.ToLower());
+                nodeType = XmlType.GetIdByName(nodeTypeXAttr.Value.ToLower());
+                xmlType = XmlType.GetByType(nodeType);
             }
             else
             {
                 if (node.IsEmpty || node.HasElements)
-                    nodeTypeAttrs = KValueAttribute.GetAttrByType(XmlTypes.XmlTypes.VoidType);
+                    nodeType = XmlType.VoidType;
                 else
-                    nodeTypeAttrs = KValueAttribute.GetAttrByType(XmlTypes.XmlTypes.StrType);
+                    nodeType = XmlType.StrType;
             }
 
             bool isArray = false;
@@ -216,32 +257,14 @@ namespace eAmuseCore.KBinXML
                 isArray = true;
             }
 
-            nodeList.AddU8((byte)(nodeTypeAttrs.NodeType | (isArray ? 64 : 0)));
+            nodeList.AddU8((byte)(nodeType | (isArray ? 64 : 0)));
             AddNodeName(node.Name.LocalName);
 
-            if (nodeTypeAttrs.NodeType != XmlTypes.XmlTypes.VoidType)
+            if (nodeType != XmlType.VoidType)
             {
-                Type valueType = XmlTypes.XmlTypes.GetByType(nodeTypeAttrs.NodeType);
+                IEnumerable<byte> data = GetNodeData(node, nodeType, xmlType, count);
 
-                IEnumerable<byte> data;
-                if (nodeTypeAttrs.NodeType == XmlTypes.XmlTypes.StrType)
-                {
-                    if (count != 1)
-                        throw new FormatException("String value cannot have a count != 1.");
-
-                    data = BinEncoding.GetBytes(node.Value).Concat(new byte[] { 0 });
-                }
-                else if (nodeTypeAttrs.NodeType == XmlTypes.XmlTypes.BinType)
-                {
-                    data = XmlTypes.Bin.FromString(node.Value).ToBytes();
-                }
-                else
-                {
-                    IKValue kValue = XmlTypes.XmlTypes.KValueFromString(valueType, node.Value, count);
-                    data = kValue.ToBytes();
-                }
-
-                if (isArray || nodeTypeAttrs.Count < 0)
+                if (isArray || xmlType.Count < 0)
                 {
                     dataList.AddU32((uint)data.Count());
                     dataList.AddRangeAligned(data);
@@ -257,7 +280,7 @@ namespace eAmuseCore.KBinXML
                 if (new[] { "__type", "__size", "__count" }.Contains(attr.Name.LocalName))
                     continue;
 
-                nodeList.AddU8(XmlTypes.XmlTypes.AttrType);
+                nodeList.AddU8(XmlType.AttrType);
                 AddNodeName(attr.Name.LocalName);
 
                 AddStringAligned(attr.Value);
@@ -266,7 +289,7 @@ namespace eAmuseCore.KBinXML
             foreach (XElement child in node.Elements())
                 GenerateNode(child);
 
-            nodeList.AddU8(XmlTypes.XmlTypes.NodeEndType | 64);
+            nodeList.AddU8(XmlType.NodeEndType | 64);
         }
 
         private void Parse()
@@ -352,26 +375,52 @@ namespace eAmuseCore.KBinXML
             }
         }
 
-        void SetNodeValue(XElement node, IEnumerable<byte> data, KValueAttribute nodeAttrs, int varCount, int arrCount)
+        void SetNodeValue(XElement node, byte nodeType, XmlType xmlType, bool isArray)
         {
-            if (nodeAttrs.NodeType == XmlTypes.XmlTypes.BinType)
+            int varCount = xmlType.Count;
+            int arrCount = 1;
+            if (varCount < 0)
+            {
+                varCount = dataBuf.FirstS32();
+                dataBuf = dataBuf.Skip(4);
+                isArray = true;
+            }
+            else if (isArray)
+            {
+                arrCount = dataBuf.FirstS32() / (xmlType.Size * xmlType.Count);
+                dataBuf = dataBuf.Skip(4);
+                node.SetAttributeValue("__count", arrCount);
+            }
+            int totCount = arrCount * varCount;
+            int totSize = totCount * xmlType.Size;
+
+            IEnumerable<byte> data = TakeDataAligned(totSize, isArray);
+
+            if (nodeType == XmlType.BinType)
             {
                 node.SetAttributeValue("__size", varCount);
-                node.SetValue(XmlTypes.Bin.FromBytes(data));
+                node.SetValue(string.Join("", data.Select(b => Convert.ToString(b, 16).PadLeft(2, '0'))));
             }
-            else if (nodeAttrs.NodeType == XmlTypes.XmlTypes.StrType)
+            else if (nodeType == XmlType.StrType)
             {
-                node.SetValue(XmlTypes.Str.FromBytes(data, BinEncoding));
+                byte[] strData = data.ToArray();
+                node.SetValue(BinEncoding.GetString(strData, 0, strData.Length - 1));
             }
             else
             {
-                node.SetValue(XmlTypes.XmlTypes.MakeNodeFromBytes(nodeAttrs, arrCount, data));
+                string[] parts = new string[arrCount];
+                for (int i = 0; i < arrCount; ++i)
+                {
+                    parts[i] = xmlType.KToString(data.Take(xmlType.Size));
+                    data = data.Skip(xmlType.Size);
+                }
+                node.SetValue(string.Join(" ", parts));
             }
         }
 
         private string GetNodeName(byte nodeType)
         {
-            if (nodeType != XmlTypes.XmlTypes.NodeEndType && nodeType != XmlTypes.XmlTypes.SectionEndType)
+            if (nodeType != XmlType.NodeEndType && nodeType != XmlType.SectionEndType)
             {
                 if (compressed)
                 {
@@ -415,30 +464,30 @@ namespace eAmuseCore.KBinXML
 
                 string name = GetNodeName(nodeType);
 
-                KValueAttribute nodeAttrs = null;
+                XmlType xmlType = null;
                 bool startNode = false;
 
                 switch (nodeType)
                 {
-                    case XmlTypes.XmlTypes.AttrType:
+                    case XmlType.AttrType:
                         string attrVal = EnumHelpers.TakeStringAligned(ref dataBuf, BinEncoding);
                         node.SetAttributeValue(name, attrVal);
                         break;
-                    case XmlTypes.XmlTypes.NodeEndType:
+                    case XmlType.NodeEndType:
                         node = node.Parent;
                         break;
-                    case XmlTypes.XmlTypes.SectionEndType:
+                    case XmlType.SectionEndType:
                         nodesLeft = false;
                         break;
-                    case XmlTypes.XmlTypes.VoidType:
+                    case XmlType.VoidType:
                         startNode = true;
                         break;
                     default:
-                        nodeAttrs = KValueAttribute.GetAttrByType(nodeType);
+                        xmlType = XmlType.GetByType(nodeType);
                         break;
                 }
 
-                if (nodeAttrs == null && !startNode)
+                if (xmlType == null && !startNode)
                     continue;
 
                 XElement child = new XElement(name);
@@ -448,28 +497,8 @@ namespace eAmuseCore.KBinXML
                 if (startNode)
                     continue;
 
-                node.SetAttributeValue("__type", nodeAttrs.Name);
-
-                int varCount = nodeAttrs.Count;
-                int arrCount = 1;
-                if (varCount < 0)
-                {
-                    varCount = dataBuf.FirstS32();
-                    dataBuf = dataBuf.Skip(4);
-                    isArray = true;
-                }
-                else if (isArray)
-                {
-                    arrCount = dataBuf.FirstS32() / (nodeAttrs.Size * nodeAttrs.Count);
-                    dataBuf = dataBuf.Skip(4);
-                    node.SetAttributeValue("__count", arrCount);
-                }
-                int totCount = arrCount * varCount;
-                int totSize = totCount * nodeAttrs.Size;
-
-                IEnumerable<byte> data = TakeDataAligned(totSize, isArray);
-
-                SetNodeValue(node, data, nodeAttrs, varCount, arrCount);
+                node.SetAttributeValue("__type", xmlType.Name);
+                SetNodeValue(node, nodeType, xmlType, isArray);
             }
 
             Document = new XDocument(fakeroot.FirstNode);
