@@ -187,14 +187,14 @@ namespace eAmuseCore.KBinXML
             dataList.Realign();
         }
 
-        private IEnumerable<byte> GetNodeData(XElement node, byte nodeType, XmlType xmlType, int count)
+        private byte[] GetNodeData(XElement node, byte nodeType, XmlType xmlType, int count)
         {
             if (nodeType == XmlType.StrType)
             {
                 if (count != 1)
                     throw new FormatException("String value cannot have a count != 1.");
 
-                return BinEncoding.GetBytes(node.Value).Concat(new byte[] { 0 });
+                return BinEncoding.GetBytes(node.Value).Concat(new byte[] { 0 }).ToArray();
             }
             else if (nodeType == XmlType.BinType)
             {
@@ -210,7 +210,7 @@ namespace eAmuseCore.KBinXML
             }
             else
             {
-                IEnumerable<string> parts = node.Value.Split(' ').AsEnumerable();
+                IEnumerable<string> parts = node.Value.Split(' ');
                 if (parts.Count() != count * xmlType.Count)
                     throw new ArgumentException("Node value does not have required amount of fields.", "node");
 
@@ -223,7 +223,7 @@ namespace eAmuseCore.KBinXML
                     parts = parts.Skip(xmlType.Count);
                 }
 
-                return res;
+                return res.ToArray();
             }
         }
 
@@ -262,11 +262,11 @@ namespace eAmuseCore.KBinXML
 
             if (nodeType != XmlType.VoidType)
             {
-                IEnumerable<byte> data = GetNodeData(node, nodeType, xmlType, count);
+                byte[] data = GetNodeData(node, nodeType, xmlType, count);
 
                 if (isArray || xmlType.Count < 0)
                 {
-                    dataList.AddU32((uint)data.Count());
+                    dataList.AddU32((uint)data.Length);
                     dataList.AddRangeAligned(data);
                 }
                 else

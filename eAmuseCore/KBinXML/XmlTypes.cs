@@ -91,8 +91,11 @@ namespace eAmuseCore.KBinXML
 
         public string KToString(IEnumerable<byte> input)
         {
-            if (input.Take(Size).Count() != Size)
+            input = input.Take(Size);
+            ICollection<byte> col = input as ICollection<byte>;
+            if (col != null && col.Count != Size)
                 throw new ArgumentException("input does not provide enough data", "input");
+
             return Converter.KToString(input);
         }
 
@@ -117,7 +120,8 @@ namespace eAmuseCore.KBinXML
             KBinToString toString = b =>
             {
                 IEnumerable<byte> data = b.Take(size);
-                if (data.Count() != size)
+                ICollection<byte> col = data as ICollection<byte>;
+                if (col != null && col.Count != size)
                     throw new ArgumentException("input does not provide enough data for all elements", "b");
 
                 string[] res = new string[count];
