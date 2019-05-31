@@ -111,26 +111,28 @@ namespace eAmuseCore.KBinXML
 
             string[] names = Names.Select(name => count.ToString() + name).ToArray();
             int size = Size * count;
-            KBinFromString fromString = (s, o) =>
+
+            byte[] fromString(string[] s, int o)
             {
                 if (s.Length - o < count)
                     throw new ArgumentException("input does not contain enough elements");
 
                 byte[] res = new byte[size];
-                
+
                 for (int i = 0; i < count; ++i)
                     Buffer.BlockCopy(Converter.KFromString(s, o + i), 0, res, i * Size, Size);
 
                 return res;
-            };
-            KBinToString toString = (b, o) =>
+            }
+
+            string toString(byte[] b, int o)
             {
                 string[] res = new string[count];
                 for (int i = 0; i < count; ++i)
                     res[i] = Converter.KToString(b, i * Size + o);
 
                 return string.Join(" ", res);
-            };
+            }
 
             return new XmlType(size, new KBinConverter(fromString, toString), count, names);
         }
