@@ -28,7 +28,7 @@ namespace ClanServer
 
         private static void ConfigureKestrel(WebHostBuilderContext context, KestrelServerOptions options)
         {
-            options.ListenLocalhost(9091);
+            options.ListenLocalhost(Startup.Port);
         }
     }
 }

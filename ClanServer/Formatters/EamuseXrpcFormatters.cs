@@ -2,18 +2,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.IO;
+using System.Xml.Linq;
+
 using Microsoft.AspNetCore.Mvc.Formatters;
 
 using eAmuseCore.Compression;
 using eAmuseCore.Crypto;
 using eAmuseCore.KBinXML;
-using System.IO;
+using System.Text;
 
 namespace ClanServer.Formatters
 {
     public class EamuseXrpcData
     {
-        public KBinXML Data;
+        public XDocument Document;
+        public Encoding Encoding;
         public string EamuseInfo;
     }
 
@@ -36,9 +40,6 @@ namespace ClanServer.Formatters
 
             string userAgent = ua.ToString().ToUpper();
             if (userAgent != "EAMUSE.XRPC/1.0")
-                return false;
-
-            if (!context.HttpContext.Request.Headers.ContainsKey("X-Eamuse-Info"))
                 return false;
 
             if (!context.HttpContext.Request.Headers.TryGetValue("X-Compress", out ua))
@@ -65,15 +66,14 @@ namespace ClanServer.Formatters
         {
             var request = context.HttpContext.Request;
 
-            if (!context.HttpContext.Request.Headers.TryGetValue("X-Eamuse-Info", out var header))
-                return await InputFormatterResult.FailureAsync();
-
-            string eAmuseInfo = header.ToString();
-
-            if (!context.HttpContext.Request.Headers.TryGetValue("X-Compress", out header))
+            if (!context.HttpContext.Request.Headers.TryGetValue("X-Compress", out var header))
                 return await InputFormatterResult.FailureAsync();
 
             string compAlgo = header.ToString();
+
+            string eAmuseInfo = null;
+            if (context.HttpContext.Request.Headers.TryGetValue("X-Eamuse-Info", out header))
+                eAmuseInfo = header.ToString();
 
             byte[] data;
 
@@ -90,13 +90,16 @@ namespace ClanServer.Formatters
         {
             data = await Task.Run(() =>
             {
-                var decrypted = RC4.ApplyEAmuseInfo(eAmuseInfo, data);
+                IEnumerable<byte> rawData = data;
+                if (eAmuseInfo != null)
+                    rawData = RC4.ApplyEAmuseInfo(eAmuseInfo, data);
+
                 switch (compAlgo.ToLower())
                 {
                     case "lz77":
-                        return LZ77.Decompress(decrypted).ToArray();
+                        return LZ77.Decompress(rawData).ToArray();
                     case "none":
-                        return decrypted.ToArray();
+                        return rawData.ToArray();
                     default:
                         return null;
                 }
@@ -122,7 +125,8 @@ namespace ClanServer.Formatters
 
             return await InputFormatterResult.SuccessAsync(new EamuseXrpcData()
             {
-                Data = result,
+                Document = result.Document,
+                Encoding = result.BinEncoding,
                 EamuseInfo = eAmuseInfo
             });
         }
@@ -149,7 +153,12 @@ namespace ClanServer.Formatters
 
             (byte[] rawData, string compAlgo) = await Task.Run(() =>
             {
-                byte[] resData = data.Data.Bytes;
+                byte[] resData;
+                if (data.Encoding != null)
+                    resData = new KBinXML(data.Document, data.Encoding).Bytes;
+                else
+                    resData = new KBinXML(data.Document).Bytes;
+
                 string algo = "none";
 
                 var compressed = LZ77.Compress(resData).ToArray();
@@ -160,7 +169,8 @@ namespace ClanServer.Formatters
                 }
                 compressed = null;
 
-                resData = RC4.ApplyEAmuseInfo(data.EamuseInfo, resData).ToArray();
+                if (data.EamuseInfo != null)
+                    resData = RC4.ApplyEAmuseInfo(data.EamuseInfo, resData).ToArray();
 
                 return (resData, algo);
             });
