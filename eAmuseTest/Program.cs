@@ -16,12 +16,15 @@ namespace eAmuseTest
         static void Main(string[] args)
         {
             string compress = "lz77";
-            string eamuse_info = "1-5cf04a27-11ad";
-            byte[] data = HexToBytes("");
+            string eamuse_info = "1-5cf049c8-6ec5";
+            byte[] data = HexToBytes("6e84f02c117651c66313a5c17fa0ddc40e3f4cd52a94bd34f460e763f610e03d5d01f876");
 
             compress = compress.ToLower();
 
-            var decryptedData = RC4.ApplyEAmuseInfo(eamuse_info, data);
+            IEnumerable<byte> decryptedData = data;
+            if (eamuse_info != null)
+                decryptedData = RC4.ApplyEAmuseInfo(eamuse_info, data);
+
             var rawData = decryptedData;
             if (compress == "lz77")
                 rawData = LZ77.Decompress(decryptedData);
@@ -30,7 +33,9 @@ namespace eAmuseTest
 
             KBinXML kbinxml = new KBinXML(rawData.ToArray());
 
-            GenerateEchidnaSQL(kbinxml);
+            Console.WriteLine(kbinxml);
+
+            //GenerateEchidnaSQL(kbinxml);
         }
 
         private static void GenerateEchidnaSQL(KBinXML get_mdata_data)

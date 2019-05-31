@@ -14,6 +14,8 @@ namespace ClanServer
 {
     public class Startup
     {
+        public const int Port = 9091;
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -34,20 +36,15 @@ namespace ClanServer
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
-            app.UseMvc();
-
             app.Use(async (context, next) =>
             {
-                Console.WriteLine($"[{context.Connection.RemoteIpAddress}] | {context.Request.Path}");
+                Console.WriteLine($"[{context.Connection.RemoteIpAddress}] | {context.Request.Path}{context.Request.QueryString}");
                 await next.Invoke();
             });
+
+            app.UseMvc();
         }
     }
 }
