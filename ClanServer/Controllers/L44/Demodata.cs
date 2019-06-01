@@ -9,7 +9,7 @@ using eAmuseCore.KBinXML;
 
 using ClanServer.Routing;
 
-namespace ClanServer.Controllers.Core
+namespace ClanServer.Controllers.L44
 {
     [ApiController, Route("L44")]
     public class DemodataController : ControllerBase
@@ -30,6 +30,14 @@ namespace ClanServer.Controllers.Core
             data.Document = new XDocument(new XElement("response", new XElement("demodata", new XElement("data",
                 new XElement("officialnews", new XAttribute("count", 0))
             ))));
+
+            return data;
+        }
+
+        [HttpPost, Route("8"), XrpcCall("demodata.get_hitchart")]
+        public ActionResult<EamuseXrpcData> GetHitchart([FromBody] EamuseXrpcData data)
+        {
+            data.Document = new XDocument(new XElement("response", new XElement("demodata")));
 
             return data;
         }

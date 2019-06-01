@@ -10,7 +10,7 @@ using eAmuseCore.KBinXML;
 using ClanServer.Formatters;
 using ClanServer.Routing;
 
-namespace ClanServer.Controllers.Core
+namespace ClanServer.Controllers.L44
 {
     [ApiController, Route("L44")]
     public class ShopinfoController : ControllerBase
@@ -28,50 +28,7 @@ namespace ClanServer.Controllers.Core
                     new KU32("exist", 0)
                 ),
                 new KU64("event_flag", 0),
-                new XElement("info",
-                    new XElement("event_info",
-                        new XElement("event", new XAttribute("type", "15"),
-                            new KU8("state", 1)
-                        ),
-                        new XElement("event", new XAttribute("type", "5"),
-                            new KU8("state", 0)
-                        ),
-                        new XElement("event", new XAttribute("type", "6"),
-                            new KU8("state", 0)
-                        )
-                    ),
-                    new XElement("share_music"),
-                    new XElement("genre_def_music"),
-                    new KS32("black_jacket_list", 64, 0),
-                    new KS32("white_music_list", 64, -1),
-                    new KS32("white_marker_list", 16, -1),
-                    new KS32("white_theme_list", 16, -1),
-                    new KS32("open_music_list", 64, -1),
-                    new KS32("shareable_music_list", 64, -1),
-                    new XElement("jbox",
-                        new KS32("point", 1),
-                        new XElement("emblem",
-                            new XElement("normal",
-                                new KS16("index", 50)
-                            ),
-                            new XElement("premium",
-                                new KS16("index", 50)
-                            )
-                        )
-                    ),
-                    new XElement("collection",
-                        new XElement("rating_s")
-                    ),
-                    new XElement("expert_option",
-                        new KBool("is_available", true)
-                    ),
-                    new XElement("all_music_matching",
-                        new KBool("is_available", false)
-                    ),
-                    new XElement("department",
-                        new XElement("pack_list")
-                    )
-                )
+                GametopController.GetInfoElement()
             ))));
 
             return data;
