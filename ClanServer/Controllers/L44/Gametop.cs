@@ -320,8 +320,30 @@ namespace ClanServer.Controllers.L44
         [HttpPost, Route("8"), XrpcCall("gametop.get_mdata")]
         public ActionResult<EamuseXrpcData> GetMdata([FromBody] EamuseXrpcData data)
         {
-            //TODO
-            data.Document = new XDocument(new XElement("response", new XElement("gametop")));
+            var gametop = data.Document.Element("call").Element("gametop");
+            var player = gametop.Element("data").Element("player");
+            int jid = int.Parse(player.Element("jid").Value);
+
+            XElement mdataList = new XElement("mdata_list"); //TODO: fill
+
+            mdataList.Add(new XElement("music", new XAttribute("music_id", "10000003"),
+                new KS32("score", new int[3] { 0, 0, 0 }),
+                new KS8("clear", new sbyte[3] { 0, 0, 0 }),
+                new KS32("play_cnt", new int[3] { 0, 0, 0 }),
+                new KS32("clear_cnt", new int[3] { 0, 0, 0 }),
+                new KS32("fc_cnt", new int[3] { 0, 0, 0 }),
+                new KS32("ex_cnt", new int[3] { 0, 0, 0 }),
+                new KU8("bar", new byte[30]).AddAttr("seq", 2),
+                new KU8("bar", new byte[30]).AddAttr("seq", 0),
+                new KU8("bar", new byte[30]).AddAttr("seq", 1)
+            ));
+
+            data.Document = new XDocument(new XElement("response", new XElement("gametop", new XElement("data",
+                new XElement("player",
+                    new KS32("jid", jid),
+                    mdataList
+                )
+            ))));
 
             return data;
         }
@@ -329,8 +351,21 @@ namespace ClanServer.Controllers.L44
         [HttpPost, Route("8"), XrpcCall("gametop.get_meeting")]
         public ActionResult<EamuseXrpcData> GetMeeting([FromBody] EamuseXrpcData data)
         {
-            //TODO
-            data.Document = new XDocument(new XElement("response", new XElement("gametop")));
+            var gametop = data.Document.Element("call").Element("gametop");
+            var player = gametop.Element("data").Element("player");
+            _ = int.Parse(player.Element("jid").Value);
+
+            data.Document = new XDocument(new XElement("response", new XElement("gametop", new XElement("data",
+                new XElement("meeting",
+                    new XElement("single", new XAttribute("count", 0),
+                        new XElement("info")
+                    )
+                ),
+                new XElement("reward",
+                    new KS32("total", 0),
+                    new KS32("point", 0)
+                )
+            ))));
 
             return data;
         }

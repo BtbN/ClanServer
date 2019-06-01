@@ -17,6 +17,8 @@ namespace ClanServer.Controllers.L44
         [HttpPost, Route("8"), XrpcCall("lobby.check")]
         public ActionResult<EamuseXrpcData> Check([FromBody] EamuseXrpcData data)
         {
+            Console.WriteLine(data.Document);
+
             //TODO
             data.Document = new XDocument(new XElement("response", new XElement("lobby")));
 
@@ -26,6 +28,19 @@ namespace ClanServer.Controllers.L44
         [HttpPost, Route("8"), XrpcCall("lobby.entry")]
         public ActionResult<EamuseXrpcData> Entry([FromBody] EamuseXrpcData data)
         {
+            Console.WriteLine(data.Document);
+
+            //TODO
+            data.Document = new XDocument(new XElement("response", new XElement("lobby")));
+
+            return data;
+        }
+
+        [HttpPost, Route("8"), XrpcCall("lobby.report")]
+        public ActionResult<EamuseXrpcData> Report([FromBody] EamuseXrpcData data)
+        {
+            Console.WriteLine(data.Document);
+
             //TODO
             data.Document = new XDocument(new XElement("response", new XElement("lobby")));
 
