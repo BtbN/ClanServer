@@ -15,6 +15,12 @@ namespace eAmuseCore.KBinXML
 
             Value = string.Join(" ", vals);
         }
+
+        public KElement AddAttr(string name, object value)
+        {
+            Add(new XAttribute(name, value));
+            return this;
+        }
     }
 
     public class KStr : KElement
