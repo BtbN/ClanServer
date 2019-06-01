@@ -21,7 +21,23 @@ namespace ClanServer.Controllers.Core
             string modelUrl;
             string[] modelItems;
 
-            if (model == "L44:J:E:A:2018070901")
+            string[] coreItems = new[]
+{
+                "cardmng",
+                "facility",
+                "message",
+                "numbering",
+                "package",
+                "pcbevent",
+                "pcbtracker",
+                "pkglist",
+                "posevent",
+                "userdata",
+                "userid",
+                "eacoin",
+            };
+
+            if (model.StartsWith("L44:J:E:A:2018"))
             {
                 modelItems = new[]
                 {
@@ -43,22 +59,6 @@ namespace ClanServer.Controllers.Core
                 new XAttribute("method", "get"),
                 new XAttribute("mode", "operation"),
                 new XAttribute("status", "0"));
-
-            string[] coreItems = new[]
-            {
-                "cardmng",
-                "facility",
-                "message",
-                "numbering",
-                "package",
-                "pcbevent",
-                "pcbtracker",
-                "pkglist",
-                "posevent",
-                "userdata",
-                "userid",
-                "eacoin",
-            };
 
             foreach (string coreItem in coreItems)
                 servicesElement.Add(new XElement("item", new XAttribute("name", coreItem), new XAttribute("url", coreUrl)));

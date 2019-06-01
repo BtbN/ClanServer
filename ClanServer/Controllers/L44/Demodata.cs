@@ -5,7 +5,8 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
 
-using ClanServer.Formatters;
+using eAmuseCore.KBinXML;
+
 using ClanServer.Routing;
 
 namespace ClanServer.Controllers.Core
@@ -16,11 +17,8 @@ namespace ClanServer.Controllers.Core
         [HttpPost, Route("8"), XrpcCall("demodata.get_info")]
         public ActionResult<EamuseXrpcData> GetInfo([FromBody] EamuseXrpcData data)
         {
-            var S32 = new XAttribute("__type", "s32");
-            var C64 = new XAttribute("__count", "64");
-
-            data.Document = new XDocument(new XElement("response", new XElement("demodata", new XElement("data", new XElement("info", 
-                new XElement("black_jacket_list", S32, C64, "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0")
+            data.Document = new XDocument(new XElement("response", new XElement("demodata", new XElement("data", new XElement("info",
+                new KS32("black_jacket_list", 64, 0)
             )))));
 
             return data;
