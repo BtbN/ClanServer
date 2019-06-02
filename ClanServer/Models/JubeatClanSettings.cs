@@ -9,6 +9,8 @@ namespace ClanServer.Models
     {
         public int ID { get; set; }
 
+        public sbyte ExpertOption { get; set; }
+
         public sbyte Sort { get; set; }
 
         public sbyte Category { get; set; }
@@ -20,6 +22,8 @@ namespace ClanServer.Models
         public sbyte RankSort { get; set; }
 
         public sbyte ComboDisplay { get; set; }
+
+        public sbyte Matching { get; set; }
 
         public sbyte Hard { get; set; }
 

@@ -32,6 +32,10 @@ namespace ClanServer.Models
 
         public short NumMiss { get; set; }
 
+        public bool IsHardMode { get; set; }
+
+        public bool IsHazardMode { get; set; }
+
         public int BestScore { get; set; }
 
         public int BestClear { get; set; }
