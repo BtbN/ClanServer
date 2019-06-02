@@ -60,11 +60,19 @@ namespace ClanServer.Controllers.Core
             return data;
         }
 
+        /*
+<call model="L44:J:E:A:2018070901" srcid="0120100000706BE5919E" tag="j5UgAKA2">
+  <cardmng cardid="E0040100059CBB11" cardtype="1" method="getrefid" newflag="0" passwd="3215" />
+</call>
+         */
+
         [HttpPost, XrpcCall("cardmng.getrefid")]
         public ActionResult<EamuseXrpcData> GetRefId([FromBody] EamuseXrpcData data)
         {
             XElement cardmng = data.Document.Element("call").Element("cardmng");
 
+            string cardId = cardmng.Attribute("cardid").Value;
+            string passwd = cardmng.Attribute("passwd").Value;
             //TODO: register new user
 
             Console.WriteLine(data.Document);

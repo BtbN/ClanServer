@@ -19,7 +19,7 @@ namespace ClanServer.Controllers.L44
         {
             XElement recommend = data.Document.Element("call").Element("recommend");
             XElement player = recommend.Element("data").Element("player");
-            int jid = int.Parse(player.Element("jid").Value);
+            _ = int.Parse(player.Element("jid").Value);
 
             int[] recommendedMusic = new int[]
             {
