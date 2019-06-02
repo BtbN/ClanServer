@@ -4,33 +4,44 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-using ClanServer.Formatters;
+using ClanServer.Helpers;
 using ClanServer.Routing;
+using ClanServer.Models;
 
 namespace ClanServer.Controllers.Core
 {
     [ApiController, Route("core")]
     public class CardmngController : ControllerBase
     {
+        private readonly ClanServerContext ctx;
+
+        public CardmngController(ClanServerContext ctx)
+        {
+            this.ctx = ctx;
+        }
+
         [HttpPost, XrpcCall("cardmng.inquire")]
         public ActionResult<EamuseXrpcData> Inquire([FromBody] EamuseXrpcData data)
         {
             XElement cardmng = data.Document.Element("call").Element("cardmng");
 
-            string cardid = cardmng.Attribute("cardid").Value;
+            byte[] cardId = cardmng.Attribute("cardid").Value.ToBytesFromHex();
             string cardType = cardmng.Attribute("cardtype").Value;
             string update = cardmng.Attribute("update").Value;
 
-            if (update != "") // TODO: actually register cards
+            var card = ctx.Cards.SingleOrDefault(c => c.CardId.SequenceEqual(cardId));
+
+            if (card != null)
             {
                 data.Document = new XDocument(new XElement("response", new XElement("cardmng",
                     new XAttribute("binded", "1"),
-                    new XAttribute("dataid", "DD389C3FFB6F47BA"),
+                    new XAttribute("dataid", card.DataIdStr),
                     new XAttribute("ecflag", "1"),
                     new XAttribute("newflag", "0"),
                     new XAttribute("expired", "0"),
-                    new XAttribute("refid", "DD389C3FFB6F47BA")
+                    new XAttribute("refid", card.RefIdStr)
                 )));
             }
             else
@@ -44,42 +55,72 @@ namespace ClanServer.Controllers.Core
         }
 
         [HttpPost, XrpcCall("cardmng.authpass")]
-        public ActionResult<EamuseXrpcData> Authpass([FromBody] EamuseXrpcData data)
+        public async Task<ActionResult<EamuseXrpcData>> Authpass([FromBody] EamuseXrpcData data)
         {
             XElement cardmng = data.Document.Element("call").Element("cardmng");
 
             string pass = cardmng.Attribute("pass").Value;
-            string refId = cardmng.Attribute("refid").Value;
+            byte[] refId = cardmng.Attribute("refid").Value.ToBytesFromHex();
 
-            //TODO
+            var card = await ctx.FindCardAsync(c => c.RefId.SequenceEqual(refId));
+
+            int status;
+            if (card != null && card.Player != null && card.Player.Passwd == pass)
+                status = 0;
+            else
+                status = 116;
 
             data.Document = new XDocument(new XElement("response", new XElement("cardmng",
-                    new XAttribute("status", "0")
+                new XAttribute("status", status)
             )));
 
             return data;
         }
 
-        /*
-<call model="L44:J:E:A:2018070901" srcid="0120100000706BE5919E" tag="j5UgAKA2">
-  <cardmng cardid="E0040100059CBB11" cardtype="1" method="getrefid" newflag="0" passwd="3215" />
-</call>
-         */
-
         [HttpPost, XrpcCall("cardmng.getrefid")]
-        public ActionResult<EamuseXrpcData> GetRefId([FromBody] EamuseXrpcData data)
+        public async Task<ActionResult<EamuseXrpcData>> GetRefId([FromBody] EamuseXrpcData data)
         {
             XElement cardmng = data.Document.Element("call").Element("cardmng");
 
             string cardId = cardmng.Attribute("cardid").Value;
+            byte[] cardIdBytes = cardId.ToBytesFromHex();
             string passwd = cardmng.Attribute("passwd").Value;
-            //TODO: register new user
 
-            Console.WriteLine(data.Document);
+            if (await ctx.Cards.AnyAsync(c => c.CardId.SequenceEqual(cardIdBytes)))
+            {
+                data.Document = new XDocument(new XElement("response", new XElement("cardmng")));
+                return data;
+            }
+
+            Random rng = new Random();
+
+            byte[] dataId = new byte[8];
+            byte[] refId = new byte[8];
+
+            rng.NextBytes(dataId);
+            rng.NextBytes(refId);
+
+            Player player = new Player()
+            {
+                Passwd = passwd
+            };
+
+            Card card = new Card()
+            {
+                CardId = cardIdBytes,
+                DataId = dataId,
+                RefId = refId,
+                Player = player
+            };
+
+            ctx.Players.Add(player);
+            ctx.Cards.Add(card);
+
+            await ctx.SaveChangesAsync();
 
             data.Document = new XDocument(new XElement("response", new XElement("cardmng",
-                    new XAttribute("dataid", "DD389C3FFB6F47BA"),
-                    new XAttribute("refid", "DD389C3FFB6F47BA")
+                    new XAttribute("dataid", card.DataIdStr),
+                    new XAttribute("refid", card.RefIdStr)
             )));
 
             return data;

@@ -44,6 +44,12 @@ namespace ClanServer
 
         public void Configure(IApplicationBuilder app)
         {
+            using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
+            {
+                var context = serviceScope.ServiceProvider.GetRequiredService<ClanServerContext>();
+                context.Database.EnsureCreated();
+            }
+
             app.Use(async (context, next) =>
             {
                 Console.WriteLine($"[{context.Connection.RemoteIpAddress}] | {context.Request.Path}{context.Request.QueryString}");
