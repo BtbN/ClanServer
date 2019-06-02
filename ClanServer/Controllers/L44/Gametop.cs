@@ -145,13 +145,15 @@ namespace ClanServer.Controllers.L44
 
             if (profile.ClanData == null)
             {
+                Random rng = new Random();
+
                 profile.ClanData = new JubeatClanProfileData()
                 {
-                    Team = 0,
-                    Street = 0,
-                    Section = 0,
-                    HouseNo1 = 0,
-                    HouseNo2 = 0,
+                    Team = (byte)(rng.Next() % 4 + 1),
+                    Street = rng.Next() % 120,
+                    Section = rng.Next() % 120,
+                    HouseNo1 = (short)(rng.Next() % 250),
+                    HouseNo2 = (short)(rng.Next() % 250),
 
                     TuneCount = 0,
                     ClearCount = 0,
@@ -237,7 +239,7 @@ namespace ClanServer.Controllers.L44
                     new KS8("seq_id", latestScore.Seq),
                     new KS8("sort", settings.Sort),
                     new KS8("category", settings.Category),
-                    new KS8("expert_option", 1),
+                    new KS8("expert_option", settings.ExpertOption),
                     new XElement("settings",
                         new KS8("marker", settings.Marker),
                         new KS8("theme", settings.Theme),
@@ -253,7 +255,7 @@ namespace ClanServer.Controllers.L44
                             settings.EmblemEffect,
                             settings.EmblemBalloon
                         }),
-                        new KS8("matching", 0),
+                        new KS8("matching", settings.Matching),
                         new KS8("hard", settings.Hard),
                         new KS8("hazard", settings.Hazard)
                     )
@@ -387,26 +389,71 @@ namespace ClanServer.Controllers.L44
         }
 
         [HttpPost, Route("8"), XrpcCall("gametop.get_mdata")]
-        public ActionResult<EamuseXrpcData> GetMdata([FromBody] EamuseXrpcData data)
+        public async Task<ActionResult<EamuseXrpcData>> GetMdata([FromBody] EamuseXrpcData data)
         {
             var gametop = data.Document.Element("call").Element("gametop");
             var player = gametop.Element("data").Element("player");
             int jid = int.Parse(player.Element("jid").Value);
 
-            XElement mdataList = new XElement("mdata_list"); //TODO: fill
+            var profile = await ctx.JubeatProfiles.SingleOrDefaultAsync(p => p.JID == jid);
+            if (profile == null)
+                return NotFound();
 
-            mdataList.Add(new XElement("music", new XAttribute("music_id", "10000003"),
-                new KS32("score", new int[3] { 0, 0, 0 }),
-                new KS8("clear", new sbyte[3] { 0, 0, 0 }),
-                new KS32("play_cnt", new int[3] { 0, 0, 0 }),
-                new KS32("clear_cnt", new int[3] { 0, 0, 0 }),
-                new KS32("fc_cnt", new int[3] { 0, 0, 0 }),
-                new KS32("ex_cnt", new int[3] { 0, 0, 0 }),
-                new KU8("bar", new byte[30]).AddAttr("seq", 2),
-                new KU8("bar", new byte[30]).AddAttr("seq", 0),
-                new KU8("bar", new byte[30]).AddAttr("seq", 1)
-            ));
+            var scores = ctx.JubeatScores
+                .Where(s => s.ProfileID == profile.ID)
+                .GroupBy(s => s.MusicID, (s, l) => new
+                {
+                    l.First().MusicID,
+                    Seqs = l.Select(v => v.Seq).ToArray(),
+                    Scores = l.Select(v => v.Score).ToArray(),
+                    Clears = l.Select(v => v.Clear).ToArray(),
+                    PlayCounts = l.Select(v => v.PlayCount).ToArray(),
+                    ClearCounts = l.Select(v => v.ClearCount).ToArray(),
+                    FcCounts =  l.Select(v => v.FcCount).ToArray(),
+                    ExCounts = l.Select(v => v.ExcCount).ToArray(),
+                    Bars = l.Select(v => v.MBar).ToArray(),
+                });
 
+            XElement mdataList = new XElement("mdata_list");
+
+            foreach (var score in scores)
+            {
+                var scoreRes = new int[3];
+                var clearRes = new sbyte[3];
+                var playCnt = new int[3];
+                var clearCnt = new int[3];
+                var fcCnt = new int[3];
+                var exCnt = new int[3];
+                var bars = new[] { new byte[30], new byte[30], new byte[30] };
+
+                for (sbyte seq = 0; seq < 3; ++seq)
+                {
+                    int seqIdx = Array.IndexOf(score.Seqs, seq);
+                    if (seqIdx < 0)
+                        continue;
+
+                    scoreRes[seq] = score.Scores[seqIdx];
+                    clearRes[seq] = score.Clears[seqIdx];
+                    playCnt[seq] = score.PlayCounts[seqIdx];
+                    clearCnt[seq] = score.ClearCounts[seqIdx];
+                    fcCnt[seq] = score.FcCounts[seqIdx];
+                    exCnt[seq] = score.ExCounts[seqIdx];
+                    bars[seq] = score.Bars[seqIdx];
+                }
+
+                mdataList.Add(new XElement("music", new XAttribute("music_id", score.MusicID),
+                    new KS32("score", scoreRes),
+                    new KS8("clear", clearRes),
+                    new KS32("play_cnt", playCnt),
+                    new KS32("clear_cnt", clearCnt),
+                    new KS32("fc_cnt", fcCnt),
+                    new KS32("ex_cnt", exCnt),
+                    new KU8("bar", bars[2]).AddAttr("seq", 2),
+                    new KU8("bar", bars[0]).AddAttr("seq", 0),
+                    new KU8("bar", bars[1]).AddAttr("seq", 1)
+                ));
+            }
+            
             data.Document = new XDocument(new XElement("response", new XElement("gametop", new XElement("data",
                 new XElement("player",
                     new KS32("jid", jid),
