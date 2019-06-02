@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -25,6 +26,11 @@ namespace ClanServer
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDbContext<ClanServerContext>(options =>
+            {
+                options.UseSqlite("Data Source=clanserver.db");
+            });
+
             services
                 .AddMvc(options =>
                 {
