@@ -17,8 +17,39 @@ namespace ClanServer.Controllers.L44
         [HttpPost, Route("8"), XrpcCall("recommend.get_recommend")]
         public ActionResult<EamuseXrpcData> GetRecommend([FromBody] EamuseXrpcData data)
         {
-            //TODO
-            data.Document = new XDocument(new XElement("response", new XElement("get_pdata")));
+            XElement recommend = data.Document.Element("call").Element("recommend");
+            XElement player = recommend.Element("data").Element("player");
+            int jid = int.Parse(player.Element("jid").Value);
+
+            int[] recommendedMusic = new int[]
+            {
+                80000016,
+                60000080,
+                50000113,
+                70000110,
+                80000126,
+                60000115,
+                80000050,
+                80000086,
+                30000048,
+                70000079
+            };
+
+            XElement musicList = new XElement("music_list");
+
+            for (int i = 0; i < recommendedMusic.Length; ++i)
+            {
+                musicList.Add(new XElement("music", new XAttribute("order", i),
+                    new KS32("music_id", recommendedMusic[i]),
+                    new KS8("seq", 0)
+                ));
+            }
+
+            data.Document = new XDocument(new XElement("response", new XElement("recommend",
+                new XElement("data", new XElement("player",
+                    musicList
+                ))
+            )));
 
             return data;
         }
