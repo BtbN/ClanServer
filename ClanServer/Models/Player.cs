@@ -9,6 +9,8 @@ namespace ClanServer.Models
     {
         public int ID { get; set; }
 
+        public string Passwd { get; set; }
+
         public ICollection<Card> Cards { get; set; }
 
         public JubeatProfile JubeatProfile { get; set; }

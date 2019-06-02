@@ -14,5 +14,9 @@ namespace ClanServer.Models
 
         [Required]
         public string Name { get; set; }
+
+        public JubeatClanProfileData ClanData { get; set; }
+
+        public JubeatClanSettings ClanSettings { get; set; }
     }
 }

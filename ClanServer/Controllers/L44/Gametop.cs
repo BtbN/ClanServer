@@ -4,37 +4,81 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 using eAmuseCore.KBinXML;
 
 using ClanServer.Routing;
+using ClanServer.Helpers;
+using ClanServer.Models;
 
 namespace ClanServer.Controllers.L44
 {
     [ApiController, Route("L44")]
     public class GametopController : ControllerBase
     {
-        [HttpPost, Route("8"), XrpcCall("gametop.regist")]
-        public ActionResult<EamuseXrpcData> Register([FromBody] EamuseXrpcData data)
+        private readonly ClanServerContext ctx;
+
+        public GametopController(ClanServerContext ctx)
         {
-            //TODO
-            data.Document = new XDocument(new XElement("response", new XElement("gametop")));
+            this.ctx = ctx;
+        }
+
+        [HttpPost, Route("8"), XrpcCall("gametop.regist")]
+        public async Task<ActionResult<EamuseXrpcData>> Register([FromBody] EamuseXrpcData data)
+        {
+            XElement gametop = data.Document.Element("call").Element("gametop");
+            XElement player = gametop.Element("data").Element("player");
+            byte[] refId = player.Element("refid").Value.ToBytesFromHex();
+            string name = player.Element("name").Value;
+
+            Card card = await ctx.FindCardAsync(c => c.RefId.SequenceEqual(refId));
+
+            if (card == null || card.Player == null)
+                return NotFound();
+
+            await ctx.Entry(card.Player).Reference(p => p.JubeatProfile).LoadAsync();
+
+            if (card.Player.JubeatProfile == null)
+                card.Player.JubeatProfile = new JubeatProfile();
+
+            card.Player.JubeatProfile.JID = Math.Abs(new Random().Next());
+            card.Player.JubeatProfile.Name = name;
+
+            await ctx.SaveChangesAsync();
+
+            data.Document = new XDocument(new XElement("response", new XElement("gametop",
+                new XElement("data",
+                    GetInfoElement(),
+                    await GetPlayerElement(card)
+                )
+            )));
 
             return data;
         }
 
         [HttpPost, Route("8"), XrpcCall("gametop.get_pdata")]
-        public ActionResult<EamuseXrpcData> GetPdata([FromBody] EamuseXrpcData data)
+        public async Task<ActionResult<EamuseXrpcData>> GetPdata([FromBody] EamuseXrpcData data)
         {
             var gametop = data.Document.Element("call").Element("gametop");
             var player = gametop.Element("data").Element("player");
 
-            string refId = player.Element("refid").Value;
+            byte[] refId = player.Element("refid").Value.ToBytesFromHex();
+
+            Card card = await ctx.FindCardAsync(c => c.RefId.SequenceEqual(refId));
+
+            if (card == null || card.Player == null)
+                return NotFound();
+
+            await ctx.Entry(card.Player).Reference(p => p.JubeatProfile).LoadAsync();
+
+            if (card.Player.JubeatProfile == null)
+                return NotFound();
 
             data.Document = new XDocument(new XElement("response", new XElement("gametop",
                 new XElement("data",
                     GetInfoElement(),
-                    GetPlayerElement(refId)
+                    await GetPlayerElement(card)
                 )
             )));
 
@@ -89,132 +133,157 @@ namespace ClanServer.Controllers.L44
             );
         }
 
-        private XElement GetPlayerElement(string refId)
+        private async Task<XElement> GetPlayerElement(Card card)
         {
-            int[] musicList = new int[64]
+            var player = card.Player;
+            var profile = player.JubeatProfile;
+
+            bool changed = false;
+
+            await ctx.Entry(profile).Reference(p => p.ClanData).LoadAsync();
+            await ctx.Entry(profile).Reference(p => p.ClanSettings).LoadAsync();
+
+            if (profile.ClanData == null)
             {
-                -2013265951, -102760493, 1711275733, -1579088899,
-                -108536, -227069, -33554401, 16383,
-                0, -1377473, -402653185, -2097153,
-                -1231036417, -786433, -444727297, -1,
-                980541439, -33357824, 1077928957, 133988323,
-                1075838048, -32706, -234907777, -196609,
-                33138687, -2097152, -907557381, -2,
-                -134217841, -34734081, -524293, -1641628417,
-                -1, -1, -2177, -7532097,
-                -3, 264241151, 2080768, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 0
-            };
+                profile.ClanData = new JubeatClanProfileData()
+                {
+                    Team = 0,
+                    Street = 0,
+                    Section = 0,
+                    HouseNo1 = 0,
+                    HouseNo2 = 0,
 
-            int[] secretList = musicList;
-            int[] themeList = new int[16] { 1023, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            int[] markerList = new int[16] { -1, 7167, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                    TuneCount = 0,
+                    ClearCount = 0,
+                    FcCount = 0,
+                    ExCount = 0,
+                    MatchCount = 0,
+                    BeatCount = 0,
+                    SaveCount = 0,
+                    SavedCount = 0,
+                    BonusTunePoints = 0,
+                    BonusTunePlayed = false,
+                };
 
-            int[] titleList = new int[160];
-            titleList[0] = 1;
-            titleList[5] = 65536;
-            titleList[11] = 1024;
-            titleList[12] = 1048576;
+                changed = true;
+            }
 
-            int[] partsList = new int[160];
-            partsList[0] = 1;
-            partsList[58] = -2147483648;
-            partsList[60] = 32;
+            if (profile.ClanSettings == null)
+            {
+                profile.ClanSettings = new JubeatClanSettings()
+                {
+                    Sort = 0,
+                    Category = 0,
+                    Marker = 3,
+                    Theme = 0,
+                    RankSort = 0,
+                    ComboDisplay = 1,
+                    Hard = 0,
+                    Hazard = 0,
 
-            int[] emblemList = new int[96];
-            emblemList[0] = 1;
-            emblemList[7] = 16;
-            emblemList[13] = 536870916;
-            emblemList[16] = 65536;
-            emblemList[18] = 4194304;
-            emblemList[22] = 268435456;
-            emblemList[24] = 65536;
-            emblemList[25] = 8388624;
-            emblemList[33] = 147456;
-            emblemList[37] = 4194312;
-            emblemList[38] = 33554432;
-            emblemList[39] = 205520896;
-            emblemList[42] = 2080;
-            emblemList[43] = 2;
-            emblemList[45] = 512;
+                    Title = 0,
+                    Parts = 0,
 
-            int[] commuList = markerList;
+                    EmblemBackground = 0,
+                    EmblemMain = 823,
+                    EmblemOrnament = 0,
+                    EmblemEffect = 0,
+                    EmblemBalloon = 0
+                };
+
+                changed = true;
+            }
+
+            if (changed)
+                await ctx.SaveChangesAsync();
+
+            var settings = profile.ClanSettings;
+            var data = profile.ClanData;
+
+            var latestScore = await ctx.JubeatScores
+                .Where(s => s.ProfileID == profile.ID)
+                .OrderByDescending(s => s.Timestamp)
+                .FirstOrDefaultAsync();
+
+            if (latestScore == null)
+                latestScore = new JubeatScore();
 
             return new XElement("player",
-                new KS32("jid", 612645048),
+                new KS32("jid", profile.JID),
                 new KS32("session_id", 1),
-                new KStr("name", "CLANTEST"),
+                new KStr("name", profile.Name),
                 new KU64("event_flag", 2),
                 new XElement("info",
-                    new KS32("tune_cnt", 991),
-                    new KS32("save_cnt", 0),
-                    new KS32("saved_cnt", 45),
-                    new KS32("fc_cnt", 40),
-                    new KS32("ex_cnt", 0),
-                    new KS32("clear_cnt", 946),
-                    new KS32("match_cnt", 0),
-                    new KS32("beat_cnt", 0),
+                    new KS32("tune_cnt", data.TuneCount),
+                    new KS32("save_cnt", data.SaveCount),
+                    new KS32("saved_cnt", data.SavedCount),
+                    new KS32("fc_cnt", data.FcCount),
+                    new KS32("ex_cnt", data.ExCount),
+                    new KS32("clear_cnt", data.ClearCount),
+                    new KS32("match_cnt", data.MatchCount),
+                    new KS32("beat_cnt", data.BeatCount),
                     new KS32("mynews_cnt", 0),
                     new KS32("mtg_entry_cnt", 0),
                     new KS32("mtg_hold_cnt", 0),
                     new KU8("mtg_result", 0),
-                    new KS32("bonus_tune_points", 320),
-                    new KBool("is_bonus_tune_played", true)
+                    new KS32("bonus_tune_points", data.BonusTunePoints),
+                    new KBool("is_bonus_tune_played", data.BonusTunePlayed)
                 ),
                 new XElement("last",
-                    new KS64("play_time", 0),
-                    new KStr("shopname", "x"),
-                    new KStr("areaname", "x"),
-                    new KS32("music_id", 70000183),
-                    new KS8("seq_id", 1),
-                    new KStr("seq_edit_id", ""),
-                    new KS8("sort", 3),
-                    new KS8("category", 24),
-                    new KS8("expert_option", 0),
+                    new KS64("play_time", data.PlayTime),
+                    new KStr("shopname", "xxx"),
+                    new KStr("areaname", "xxx"),
+                    new KS32("music_id", latestScore.MusicID),
+                    new KS8("seq_id", latestScore.Seq),
+                    new KS8("sort", settings.Sort),
+                    new KS8("category", settings.Category),
+                    new KS8("expert_option", 1),
                     new XElement("settings",
-                        new KS8("marker", 3),
-                        new KS8("theme", 6),
-                        new KS16("title", 0),
-                        new KS16("parts", 0),
-                        new KS8("rank_sort", 1),
-                        new KS8("combo_disp", 1),
-                        new KS16("emblem", new short[] { 0, 823, 0, 0, 0 }),
+                        new KS8("marker", settings.Marker),
+                        new KS8("theme", settings.Theme),
+                        new KS16("title", settings.Title),
+                        new KS16("parts", settings.Parts),
+                        new KS8("rank_sort", settings.RankSort),
+                        new KS8("combo_disp", settings.ComboDisplay),
+                        new KS16("emblem", new short[]
+                        {
+                            settings.EmblemBackground,
+                            settings.EmblemMain,
+                            settings.EmblemOrnament,
+                            settings.EmblemEffect,
+                            settings.EmblemBalloon
+                        }),
                         new KS8("matching", 0),
-                        new KS8("hard", 0),
-                        new KS8("hazard", 0)
+                        new KS8("hard", settings.Hard),
+                        new KS8("hazard", settings.Hazard)
                     )
                 ),
                 new XElement("item",
-                    new KS32("music_list", musicList),
-                    new KS32("secret_list", secretList),
-                    new KS32("theme_list", themeList),
-                    new KS32("marker_list", markerList),
-                    new KS32("title_list", titleList),
-                    new KS32("parts_list", partsList),
-                    new KS32("emblem_list", emblemList),
-                    new KS32("commu_list", commuList),
+                    new KS32("music_list", 64, -1),
+                    new KS32("secret_list", 64, -1),
+                    new KS32("theme_list", 16, -1),
+                    new KS32("marker_list", 16, -1),
+                    new KS32("title_list", 160, -1),
+                    new KS32("parts_list", 160, -1),
+                    new KS32("emblem_list", 96, -1),
+                    new KS32("commu_list", 16, -1),
                     new XElement("new",
                         new KS32("secret_list", 64, 0),
                         new KS32("theme_list", 16, 0),
                         new KS32("marker_list", 16, 0)
                     )
                 ),
-                new XElement("team", new XAttribute("id", "1"),
-                    new KS32("section", 4),
-                    new KS32("street", 6),
-                    new KS32("house_number_1", 67),
-                    new KS32("house_number_2", 1),
+                new XElement("team", new XAttribute("id", data.Team),
+                    new KS32("section", data.Section),
+                    new KS32("street", data.Street),
+                    new KS32("house_number_1", data.HouseNo1),
+                    new KS32("house_number_2", data.HouseNo2),
                     new XElement("move",
-                        new XAttribute("house_number_1", 67),
-                        new XAttribute("house_number_2", 1),
-                        new XAttribute("id", 1),
-                        new XAttribute("section", 4),
-                        new XAttribute("street", 6)
+                        new XAttribute("house_number_1", data.HouseNo1),
+                        new XAttribute("house_number_2", data.HouseNo2),
+                        new XAttribute("id", data.Team),
+                        new XAttribute("section", data.Section),
+                        new XAttribute("street", data.Street)
                     )
                 ),
                 new XElement("jbox",
