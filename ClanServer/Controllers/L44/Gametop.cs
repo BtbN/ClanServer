@@ -399,24 +399,13 @@ namespace ClanServer.Controllers.L44
             if (profile == null)
                 return NotFound();
 
-            var scores = ctx.JubeatScores
+            var scoreGroups = ctx.JubeatScores
                 .Where(s => s.ProfileID == profile.ID)
-                .GroupBy(s => s.MusicID, (s, l) => new
-                {
-                    l.First().MusicID,
-                    Seqs = l.Select(v => v.Seq).ToArray(),
-                    Scores = l.Select(v => v.Score).ToArray(),
-                    Clears = l.Select(v => v.Clear).ToArray(),
-                    PlayCounts = l.Select(v => v.PlayCount).ToArray(),
-                    ClearCounts = l.Select(v => v.ClearCount).ToArray(),
-                    FcCounts =  l.Select(v => v.FcCount).ToArray(),
-                    ExCounts = l.Select(v => v.ExcCount).ToArray(),
-                    Bars = l.Select(v => v.MBar).ToArray(),
-                });
+                .GroupBy(s => s.MusicID);
 
             XElement mdataList = new XElement("mdata_list");
 
-            foreach (var score in scores)
+            foreach (var scoreGroup in scoreGroups)
             {
                 var scoreRes = new int[3];
                 var clearRes = new sbyte[3];
@@ -426,22 +415,20 @@ namespace ClanServer.Controllers.L44
                 var exCnt = new int[3];
                 var bars = new[] { new byte[30], new byte[30], new byte[30] };
 
-                for (sbyte seq = 0; seq < 3; ++seq)
+                foreach (JubeatScore score in scoreGroup)
                 {
-                    int seqIdx = Array.IndexOf(score.Seqs, seq);
-                    if (seqIdx < 0)
-                        continue;
+                    int seq = score.Seq;
 
-                    scoreRes[seq] = score.Scores[seqIdx];
-                    clearRes[seq] = score.Clears[seqIdx];
-                    playCnt[seq] = score.PlayCounts[seqIdx];
-                    clearCnt[seq] = score.ClearCounts[seqIdx];
-                    fcCnt[seq] = score.FcCounts[seqIdx];
-                    exCnt[seq] = score.ExCounts[seqIdx];
-                    bars[seq] = score.Bars[seqIdx];
+                    scoreRes[seq] = score.Score;
+                    clearRes[seq] = score.Clear;
+                    playCnt[seq] = score.PlayCount;
+                    clearCnt[seq] = score.ClearCount;
+                    fcCnt[seq] = score.FcCount;
+                    exCnt[seq] = score.ExcCount;
+                    bars[seq] = score.MBar;
                 }
 
-                mdataList.Add(new XElement("music", new XAttribute("music_id", score.MusicID),
+                mdataList.Add(new XElement("music", new XAttribute("music_id", scoreGroup.Key),
                     new KS32("score", scoreRes),
                     new KS8("clear", clearRes),
                     new KS32("play_cnt", playCnt),
