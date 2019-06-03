@@ -370,6 +370,9 @@ namespace ClanServer.Controllers.L44
         {
             XElement res = new XElement("target_music_list");
 
+            if (profile.Jubilitys == null)
+                return res;
+
             foreach (JubeatClanJubility jubility in profile.Jubilitys)
             {
                 res.Add(new XElement("target_music",
