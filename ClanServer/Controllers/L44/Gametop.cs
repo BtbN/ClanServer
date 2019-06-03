@@ -161,6 +161,8 @@ namespace ClanServer.Controllers.L44
             await ctx.Entry(profile).Reference(p => p.ClanData).LoadAsync();
             await ctx.Entry(profile).Reference(p => p.ClanSettings).LoadAsync();
 
+            bool freshProfile = false;
+
             if (profile.ClanData == null)
             {
                 Random rng = new Random();
@@ -168,10 +170,10 @@ namespace ClanServer.Controllers.L44
                 profile.ClanData = new JubeatClanProfileData()
                 {
                     Team = (byte)(rng.Next() % 4 + 1),
-                    Street = rng.Next() % 120,
-                    Section = rng.Next() % 120,
-                    HouseNo1 = (short)(rng.Next() % 250),
-                    HouseNo2 = (short)(rng.Next() % 250),
+                    Street = rng.Next() % 18 + 1,
+                    Section = rng.Next() % 18 + 1,
+                    HouseNo1 = (short)(rng.Next() % 24 + 1),
+                    HouseNo2 = (short)(rng.Next() % 240 + 1),
 
                     TuneCount = 0,
                     ClearCount = 0,
@@ -186,6 +188,7 @@ namespace ClanServer.Controllers.L44
                 };
 
                 changed = true;
+                freshProfile = true;
             }
 
             if (profile.ClanSettings == null)
@@ -194,10 +197,10 @@ namespace ClanServer.Controllers.L44
                 {
                     Sort = 0,
                     Category = 0,
-                    Marker = 3,
+                    Marker = 0,
                     Theme = 0,
                     RankSort = 0,
-                    ComboDisplay = 1,
+                    ComboDisplay = 0,
                     Hard = 0,
                     Hazard = 0,
 
@@ -293,11 +296,11 @@ namespace ClanServer.Controllers.L44
                         new KS32("marker_list", 16, 0)
                     )
                 ),
-                new XElement("team", new XAttribute("id", data.Team),
-                    new KS32("section", data.Section),
-                    new KS32("street", data.Street),
-                    new KS32("house_number_1", data.HouseNo1),
-                    new KS32("house_number_2", data.HouseNo2),
+                new XElement("team", new XAttribute("id", freshProfile ? 0 : data.Team),
+                    new KS32("section", freshProfile ? 0 : data.Section),
+                    new KS32("street", freshProfile ? 0 : data.Street),
+                    new KS32("house_number_1", freshProfile ? 0 : data.HouseNo1),
+                    new KS32("house_number_2", freshProfile ? 0 : data.HouseNo2),
                     new XElement("move",
                         new XAttribute("house_number_1", data.HouseNo1),
                         new XAttribute("house_number_2", data.HouseNo2),
@@ -307,7 +310,7 @@ namespace ClanServer.Controllers.L44
                     )
                 ),
                 new XElement("jbox",
-                    new KS32("point", 700),
+                    new KS32("point", 0),
                     new XElement("emblem",
                         new XElement("normal",
                             new KS16("index", 1182)
@@ -325,7 +328,7 @@ namespace ClanServer.Controllers.L44
                     new KBool("is_available", false)
                 ),
                 new XElement("event_info",
-                    new XElement("event", new XAttribute("type", "15"),
+                    new XElement("event", new XAttribute("type", 15),
                         new KU8("state", 1)
                     )
                 ),
@@ -358,7 +361,7 @@ namespace ClanServer.Controllers.L44
                     )
                 ),
                 new XElement("navi",
-                    new KU64("flag", 122)
+                    new KU64("flag", freshProfile ? 0UL : 122UL)
                 )
             );
         }
