@@ -310,7 +310,7 @@ namespace ClanServer.Controllers.L44
                     )
                 ),
                 new XElement("jbox",
-                    new KS32("point", 0),
+                    new KS32("point", data.JboxPoints),
                     new XElement("emblem",
                         new XElement("normal",
                             new KS16("index", 1182)

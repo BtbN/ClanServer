@@ -14,8 +14,9 @@ namespace ClanServer.Controllers.Core
     public class PcbEventController : ControllerBase
     {
         [HttpPost, XrpcCall("pcbevent.put")]
-        public ActionResult<EamuseXrpcData> Put([FromBody] EamuseXrpcData data, [FromQuery] string model)
+        public ActionResult<EamuseXrpcData> Put([FromBody] EamuseXrpcData data)
         {
+            // TODO: log these, maybe?
             Console.WriteLine(data.Document);
 
             data.Document = new XDocument(new XElement("response", new XElement("pcbevent")));

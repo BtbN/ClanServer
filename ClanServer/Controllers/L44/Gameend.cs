@@ -40,16 +40,11 @@ namespace ClanServer.Controllers.L44
                     .Include(p => p.Jubilitys)
                     .SingleOrDefaultAsync(p => p.ID == jid);
 
-                if (profile == null)
-                    return NotFound();
-
-                if (profile.ClanData == null)
-                    profile.ClanData = new JubeatClanProfileData();
-                if (profile.ClanSettings == null)
-                    profile.ClanSettings = new JubeatClanSettings();
-
                 var data = profile.ClanData;
                 var settings = profile.ClanSettings;
+
+                if (profile == null || data == null || settings == null)
+                    return NotFound();
 
                 XElement teamE = playerE.Element("team");
                 data.Team = byte.Parse(teamE.Attribute("id").Value);
@@ -72,6 +67,9 @@ namespace ClanServer.Controllers.L44
                 data.SavedCount = int.Parse(pInfoE.Element("saved_cnt").Value);
                 data.BonusTunePoints = int.Parse(pInfoE.Element("bonus_tune_points").Value);
                 data.BonusTunePlayed = pInfoE.Element("is_bonus_tune_played").Value == "1";
+
+                XElement jboxE = playerE.Element("jbox");
+                data.JboxPoints = int.Parse(jboxE.Element("point").Value);
 
                 XElement lastE = playerE.Element("last");
                 settings.ExpertOption = sbyte.Parse(lastE.Element("expert_option").Value);
@@ -164,10 +162,36 @@ namespace ClanServer.Controllers.L44
         }
 
         [HttpPost, Route("8"), XrpcCall("gameend.final")]
-        public ActionResult<EamuseXrpcData> Final([FromBody] EamuseXrpcData data)
+        public async Task<ActionResult<EamuseXrpcData>> Final([FromBody] EamuseXrpcData xrpcData)
         {
-            data.Document = new XDocument(new XElement("response", new XElement("gameend")));
-            return data;
+            try
+            {
+                XElement dataE = xrpcData.Document.Element("call").Element("gameend").Element("data");
+                XElement playerE = dataE.Element("player");
+
+                int jid = int.Parse(playerE.Element("jid").Value);
+
+                JubeatProfile profile = await ctx.JubeatProfiles
+                    .Include(p => p.ClanData)
+                    .Include(p => p.ClanSettings)
+                    .Include(p => p.Jubilitys)
+                    .SingleOrDefaultAsync(p => p.ID == jid);
+
+                var data = profile.ClanData;
+
+                XElement jboxE = playerE.Element("jbox");
+                data.JboxPoints = int.Parse(jboxE.Element("point").Value);
+
+                await ctx.SaveChangesAsync();
+
+                xrpcData.Document = new XDocument(new XElement("response", new XElement("gameend")));
+                return xrpcData;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                return StatusCode(500);
+            }
         }
     }
 }
