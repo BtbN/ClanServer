@@ -33,6 +33,8 @@ namespace ClanServer.Controllers.L44
             string name = player.Element("name").Value;
 
             Card card = await ctx.Cards
+                .Include(c => c.Player.JubeatProfile)
+                .ThenInclude(p => p.Jubilitys)
                 .Include(c => c.Player.JubeatProfile.ClanData)
                 .Include(c => c.Player.JubeatProfile.ClanSettings)
                 .SingleOrDefaultAsync(c => c.RefId.SequenceEqual(refId));
@@ -43,7 +45,6 @@ namespace ClanServer.Controllers.L44
             if (card.Player.JubeatProfile == null)
                 card.Player.JubeatProfile = new JubeatProfile();
 
-            card.Player.JubeatProfile.JID = Math.Abs(new Random().Next());
             card.Player.JubeatProfile.Name = name;
 
             await ctx.SaveChangesAsync();
@@ -210,7 +211,7 @@ namespace ClanServer.Controllers.L44
                 latestScore = new JubeatScore();
 
             return new XElement("player",
-                new KS32("jid", profile.JID),
+                new KS32("jid", profile.ID),
                 new KS32("session_id", 1),
                 new KStr("name", profile.Name),
                 new KU64("event_flag", 2),
@@ -312,8 +313,8 @@ namespace ClanServer.Controllers.L44
                 ),
                 new XElement("new_music"),
                 new XElement("gift_list"),
-                new XElement("jubility", new XAttribute("param", "0"),
-                    new XElement("target_music_list")
+                new XElement("jubility", new XAttribute("param", data.JubilityParam),
+                    GenJubilityTargetMusicList(profile)
                 ),
                 new XElement("born",
                     new KS8("status", 1),
@@ -342,6 +343,24 @@ namespace ClanServer.Controllers.L44
                     new KU64("flag", 122)
                 )
             );
+        }
+
+        private XElement GenJubilityTargetMusicList(JubeatProfile profile)
+        {
+            XElement res = new XElement("target_music_list");
+
+            foreach (JubeatClanJubility jubility in profile.Jubilitys)
+            {
+                res.Add(new XElement("target_music",
+                    new KS32("music_id", jubility.MusicID),
+                    new KS8("seq", jubility.Seq),
+                    new KS32("score", jubility.Score),
+                    new KS32("value", jubility.Value),
+                    new KBool("is_hard_mode", jubility.IsHardMode)
+                ));
+            }
+
+            return res;
         }
 
         private static XElement GenClanCourseList()
@@ -394,7 +413,7 @@ namespace ClanServer.Controllers.L44
             var player = gametop.Element("data").Element("player");
             int jid = int.Parse(player.Element("jid").Value);
 
-            var profile = await ctx.JubeatProfiles.SingleOrDefaultAsync(p => p.JID == jid);
+            var profile = await ctx.JubeatProfiles.SingleOrDefaultAsync(p => p.ID == jid);
             if (profile == null)
                 return NotFound();
 

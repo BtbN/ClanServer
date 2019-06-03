@@ -28,11 +28,6 @@ namespace ClanServer
             cardEntity
                 .HasIndex(card => card.DataId);
 
-            var juProfEntity = modelBuilder.Entity<JubeatProfile>();
-            juProfEntity
-                .HasIndex(profile => profile.JID)
-                .IsUnique();
-
             var jbScoreEntity = modelBuilder.Entity<JubeatScore>();
             jbScoreEntity
                 .HasIndex(score => new { score.ProfileID, score.MusicID, score.Seq })

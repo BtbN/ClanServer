@@ -45,5 +45,7 @@ namespace ClanServer.Models
         public int BonusTunePoints { get; set; }
 
         public bool BonusTunePlayed { get; set; }
+
+        public int JubilityParam { get; set; }
     }
 }

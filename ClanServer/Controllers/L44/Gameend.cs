@@ -32,23 +32,16 @@ namespace ClanServer.Controllers.L44
                 XElement dataE = xrpcData.Document.Element("call").Element("gameend").Element("data");
                 XElement playerE = dataE.Element("player");
 
-                byte[] refId = playerE.Element("refid").Value.ToBytesFromHex();
+                int jid = int.Parse(playerE.Element("jid").Value);
 
-                Card card = await ctx.Cards
-                    .Include(c => c.Player.JubeatProfile)
-                    .SingleOrDefaultAsync(c => c.RefId.SequenceEqual(refId));
+                JubeatProfile profile = await ctx.JubeatProfiles
+                    .Include(p => p.ClanData)
+                    .Include(p => p.ClanSettings)
+                    .Include(p => p.Jubilitys)
+                    .SingleOrDefaultAsync(p => p.ID == jid);
 
-                if (card == null)
+                if (profile == null)
                     return NotFound();
-
-                var player = card.Player;
-
-                await ctx.Entry(player).Reference(p => p.JubeatProfile).LoadAsync();
-
-                var profile = player.JubeatProfile;
-
-                await ctx.Entry(profile).Reference(p => p.ClanData).LoadAsync();
-                await ctx.Entry(profile).Reference(p => p.ClanSettings).LoadAsync();
 
                 if (profile.ClanData == null)
                     profile.ClanData = new JubeatClanProfileData();
@@ -141,7 +134,22 @@ namespace ClanServer.Controllers.L44
                     score.MBar = Array.ConvertAll(mbarStrs, s => byte.Parse(s));
                 }
 
-                //TODO: save jubility, player->jubility
+                XElement jubility = playerE.Element("jubility");
+                data.JubilityParam = int.Parse(jubility.Attribute("param").Value);
+
+                profile.Jubilitys.Clear();
+
+                foreach (XElement targetMusic in jubility.Element("target_music_list").Elements("target_music"))
+                {
+                    profile.Jubilitys.Add(new JubeatClanJubility()
+                    {
+                        MusicID = int.Parse(targetMusic.Element("music_id").Value),
+                        Seq = sbyte.Parse(targetMusic.Element("seq").Value),
+                        Score = int.Parse(targetMusic.Element("score").Value),
+                        Value = int.Parse(targetMusic.Element("value").Value),
+                        IsHardMode = targetMusic.Element("is_hard_mode").Value == "1"
+                    });
+                }
 
                 await ctx.SaveChangesAsync();
 
