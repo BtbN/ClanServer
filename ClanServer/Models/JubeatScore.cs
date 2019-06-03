@@ -10,6 +10,7 @@ namespace ClanServer.Models
         public int ID { get; set; }
 
         [Required]
+        public JubeatProfile Profile { get; set; }
         public int ProfileID { get; set; }
 
         public long Timestamp { get; set; }

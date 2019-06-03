@@ -49,17 +49,5 @@ namespace ClanServer
         public DbSet<JubeatClanProfileData> JubeatClanProfileData { get; set; }
         public DbSet<JubeatProfile> JubeatProfiles { get; set; }
         public DbSet<JubeatScore> JubeatScores { get; set; }
-
-        public async Task<Card> FindCardAsync(Expression<Func<Card, bool>> selector)
-        {
-            Card card = await Cards.SingleOrDefaultAsync(selector);
-
-            if (card != null)
-            {
-                await Entry(card).Reference(c => c.Player).LoadAsync();
-            }
-
-            return card;
-        }
     }
 }

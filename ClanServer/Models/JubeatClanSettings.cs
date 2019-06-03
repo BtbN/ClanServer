@@ -9,6 +9,9 @@ namespace ClanServer.Models
     {
         public int ID { get; set; }
 
+        public JubeatProfile Profile { get; set; }
+        public int ProfileID { get; set; }
+
         public sbyte ExpertOption { get; set; }
 
         public sbyte Sort { get; set; }

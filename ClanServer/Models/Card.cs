@@ -11,8 +11,8 @@ namespace ClanServer.Models
     {
         public int ID { get; set; }
 
-        [Required]
         public Player Player { get; set; }
+        public int PlayerID { get; set; }
 
         [Required]
         [MaxLength(8), MinLength(8)]
