@@ -49,12 +49,20 @@ namespace ClanServer.Controllers.L44
 
             await ctx.SaveChangesAsync();
 
-            data.Document = new XDocument(new XElement("response", new XElement("gametop",
-                new XElement("data",
-                    GetInfoElement(),
-                    await GetPlayerElement(card)
-                )
-            )));
+            try
+            {
+                data.Document = new XDocument(new XElement("response", new XElement("gametop",
+                    new XElement("data",
+                        GetInfoElement(),
+                        await GetPlayerElement(card)
+                    )
+                )));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                return StatusCode(500);
+            }
 
             return data;
         }
@@ -68,6 +76,8 @@ namespace ClanServer.Controllers.L44
             byte[] refId = player.Element("refid").Value.ToBytesFromHex();
 
             Card card = await ctx.Cards
+                .Include(c => c.Player.JubeatProfile)
+                .ThenInclude(p => p.Jubilitys)
                 .Include(c => c.Player.JubeatProfile.ClanData)
                 .Include(c => c.Player.JubeatProfile.ClanSettings)
                 .SingleOrDefaultAsync(c => c.RefId.SequenceEqual(refId));
@@ -75,12 +85,20 @@ namespace ClanServer.Controllers.L44
             if (card == null || card.Player == null || card.Player.JubeatProfile == null)
                 return NotFound();
 
-            data.Document = new XDocument(new XElement("response", new XElement("gametop",
-                new XElement("data",
-                    GetInfoElement(),
-                    await GetPlayerElement(card)
-                )
-            )));
+            try
+            {
+                data.Document = new XDocument(new XElement("response", new XElement("gametop",
+                    new XElement("data",
+                        GetInfoElement(),
+                        await GetPlayerElement(card)
+                    )
+                )));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                return StatusCode(500);
+            }
 
             return data;
         }
