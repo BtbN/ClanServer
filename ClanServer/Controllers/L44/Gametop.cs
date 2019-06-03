@@ -32,12 +32,13 @@ namespace ClanServer.Controllers.L44
             byte[] refId = player.Element("refid").Value.ToBytesFromHex();
             string name = player.Element("name").Value;
 
-            Card card = await ctx.FindCardAsync(c => c.RefId.SequenceEqual(refId));
+            Card card = await ctx.Cards
+                .Include(c => c.Player.JubeatProfile.ClanData)
+                .Include(c => c.Player.JubeatProfile.ClanSettings)
+                .SingleOrDefaultAsync(c => c.RefId.SequenceEqual(refId));
 
             if (card == null || card.Player == null)
                 return NotFound();
-
-            await ctx.Entry(card.Player).Reference(p => p.JubeatProfile).LoadAsync();
 
             if (card.Player.JubeatProfile == null)
                 card.Player.JubeatProfile = new JubeatProfile();
@@ -65,14 +66,12 @@ namespace ClanServer.Controllers.L44
 
             byte[] refId = player.Element("refid").Value.ToBytesFromHex();
 
-            Card card = await ctx.FindCardAsync(c => c.RefId.SequenceEqual(refId));
+            Card card = await ctx.Cards
+                .Include(c => c.Player.JubeatProfile.ClanData)
+                .Include(c => c.Player.JubeatProfile.ClanSettings)
+                .SingleOrDefaultAsync(c => c.RefId.SequenceEqual(refId));
 
-            if (card == null || card.Player == null)
-                return NotFound();
-
-            await ctx.Entry(card.Player).Reference(p => p.JubeatProfile).LoadAsync();
-
-            if (card.Player.JubeatProfile == null)
+            if (card == null || card.Player == null || card.Player.JubeatProfile == null)
                 return NotFound();
 
             data.Document = new XDocument(new XElement("response", new XElement("gametop",

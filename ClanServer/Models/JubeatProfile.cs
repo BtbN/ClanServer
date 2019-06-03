@@ -9,6 +9,9 @@ namespace ClanServer.Models
     {
         public int ID { get; set; }
 
+        public Player Player { get; set; }
+        public int PlayerID { get; set; }
+
         [Required]
         public int JID { get; set; }
 
@@ -18,5 +21,7 @@ namespace ClanServer.Models
         public JubeatClanProfileData ClanData { get; set; }
 
         public JubeatClanSettings ClanSettings { get; set; }
+
+        public ICollection<JubeatScore> Scores { get; set; }
     }
 }

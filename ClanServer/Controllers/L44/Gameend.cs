@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 using eAmuseCore.KBinXML;
 
@@ -33,7 +34,10 @@ namespace ClanServer.Controllers.L44
 
                 byte[] refId = playerE.Element("refid").Value.ToBytesFromHex();
 
-                Card card = await ctx.FindCardAsync(c => c.RefId.SequenceEqual(refId));
+                Card card = await ctx.Cards
+                    .Include(c => c.Player.JubeatProfile)
+                    .SingleOrDefaultAsync(c => c.RefId.SequenceEqual(refId));
+
                 if (card == null)
                     return NotFound();
 

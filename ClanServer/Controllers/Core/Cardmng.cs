@@ -62,7 +62,9 @@ namespace ClanServer.Controllers.Core
             string pass = cardmng.Attribute("pass").Value;
             byte[] refId = cardmng.Attribute("refid").Value.ToBytesFromHex();
 
-            var card = await ctx.FindCardAsync(c => c.RefId.SequenceEqual(refId));
+            Card card = await ctx.Cards
+                .Include(c => c.Player)
+                .SingleOrDefaultAsync(c => c.RefId.SequenceEqual(refId));
 
             int status;
             if (card != null && card.Player != null && card.Player.Passwd == pass)

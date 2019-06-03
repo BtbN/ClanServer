@@ -9,8 +9,10 @@ namespace ClanServer.Models
     {
         public int ID { get; set; }
 
+        public JubeatProfile Profile { get; set; }
+        public int ProfileID { get; set; }
 
-        [Range(0, 4)]
+        [Range(1, 4)]
         public byte Team { get; set; }
 
         public int Street { get; set; }
