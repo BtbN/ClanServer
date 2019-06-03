@@ -13,14 +13,13 @@ namespace ClanServer.Models
         public int PlayerID { get; set; }
 
         [Required]
-        public int JID { get; set; }
-
-        [Required]
         public string Name { get; set; }
 
         public JubeatClanProfileData ClanData { get; set; }
 
         public JubeatClanSettings ClanSettings { get; set; }
+
+        public ICollection<JubeatClanJubility> Jubilitys { get; set; }
 
         public ICollection<JubeatScore> Scores { get; set; }
     }
