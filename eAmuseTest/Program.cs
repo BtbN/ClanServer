@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.IO;
 using System.Text;
 using System.Linq;
 using System.Xml.Linq;
@@ -33,7 +34,7 @@ namespace eAmuseTest
 
             KBinXML kbinxml = new KBinXML(rawData.ToArray());
 
-            Console.WriteLine(kbinxml.ToString());
+            Console.WriteLine(kbinxml);
 
             //GenerateEchidnaSQL(kbinxml);
         }
