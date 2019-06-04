@@ -170,11 +170,11 @@ namespace ClanServer.Controllers.L44
 
                 profile.ClanData = new JubeatClanProfileData()
                 {
-                    Team = (byte)(rng.Next() % 4 + 1),
-                    Street = rng.Next() % 18 + 1,
-                    Section = rng.Next() % 18 + 1,
-                    HouseNo1 = (short)(rng.Next() % 24 + 1),
-                    HouseNo2 = (short)(rng.Next() % 240 + 1),
+                    Team = (byte)(rng.Next(1, 5)),
+                    Street = rng.Next(1, 19),
+                    Section = rng.Next(1, 5),
+                    HouseNo1 = (short)(rng.Next(1, 25)),
+                    HouseNo2 = (short)(rng.Next(1, 241)),
 
                     TuneCount = 0,
                     ClearCount = 0,
