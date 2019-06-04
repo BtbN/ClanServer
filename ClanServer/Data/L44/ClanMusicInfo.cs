@@ -56,7 +56,7 @@ namespace ClanServer.Data.L44
 
         private void BuildMusicList()
         {
-            XElement body = doc.Root.Element("music_data").Element("body");
+            XElement body = doc.Root.Element("body");
             var musicData = body.Elements("data");
 
             musicIdList = new List<int>(musicData.Count());
