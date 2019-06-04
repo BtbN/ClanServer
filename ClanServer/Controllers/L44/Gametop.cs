@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,6 +11,7 @@ using eAmuseCore.KBinXML;
 using ClanServer.Routing;
 using ClanServer.Helpers;
 using ClanServer.Models;
+using ClanServer.Data.L44;
 
 namespace ClanServer.Controllers.L44
 {
@@ -350,18 +351,27 @@ namespace ClanServer.Controllers.L44
                 GenClanCourseList(),
                 new XElement("server"),
                 new XElement("rivallist"),
-                new XElement("fc_challenge",
-                    new XElement("today",
-                        new KS32("music_id", 40000057),
-                        new KU8("state", 0)
-                    ),
-                    new XElement("whim",
-                        new KS32("music_id", 30000041),
-                        new KU8("state", 80)
-                    )
-                ),
+                await GenFcChallenge(),
                 new XElement("navi",
                     new KU64("flag", freshProfile ? 0UL : 122UL)
+                )
+            );
+        }
+
+        private async Task<XElement> GenFcChallenge()
+        {
+            ClanMusicInfo mInfo = await ClanMusicInfo.Instance;
+
+            List<int> songs = mInfo.GetRandomSongs(2);
+
+            return new XElement("fc_challenge",
+                new XElement("today",
+                    new KS32("music_id", songs[0]),
+                    new KU8("state", 0)
+                ),
+                new XElement("whim",
+                    new KS32("music_id", songs[1]),
+                    new KU8("state", 80)
                 )
             );
         }

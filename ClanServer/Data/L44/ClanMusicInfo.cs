@@ -73,10 +73,9 @@ namespace ClanServer.Data.L44
         {
             HashSet<int> candidateIndexes = new HashSet<int>();
             while (candidateIndexes.Count < num)
-                candidateIndexes.Add(rng.Next(0, musicIdList.Count));
+                candidateIndexes.Add(rng.Next(musicIdList.Count));
 
-            List<int> result = new List<int>(num);
-            result.AddRange(candidateIndexes.Select(i => musicIdList[i]));
+            List<int> result = candidateIndexes.Select(i => musicIdList[i]).ToList();
 
             for (int i = result.Count - 1; i > 0; --i)
             {
