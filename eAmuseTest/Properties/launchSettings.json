@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "eAmuseTest": {
+      "commandName": "Project",
+      "workingDirectory": "."
+    }
+  }
+}
