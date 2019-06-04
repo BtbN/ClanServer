@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Linq;
 using System.Collections.Generic;
@@ -137,6 +137,8 @@ namespace eAmuseCore.KBinXML
             return new XmlType(size, new KBinConverter(fromString, toString), count, names);
         }
 
+        public static XmlType Void = new XmlType(0, null, "void");
+
         public static XmlType S8 = new XmlType(1, KBinConverter.S8, "s8");
         public static XmlType U8 = new XmlType(1, KBinConverter.U8, "u8");
         public static XmlType S16 = new XmlType(2, KBinConverter.S16, "s16");
@@ -158,6 +160,7 @@ namespace eAmuseCore.KBinXML
 
         private static readonly Dictionary<byte, XmlType> lookupMap = new Dictionary<byte, XmlType>()
         {
+            [1] = Void,
             [2] = S8,
             [3] = U8,
             [4] = S16,
