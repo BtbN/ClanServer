@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using eAmuseCore.KBinXML;
 
 using ClanServer.Routing;
+using ClanServer.Data.L44;
 
 namespace ClanServer.Controllers.L44
 {
@@ -43,25 +44,15 @@ namespace ClanServer.Controllers.L44
         }
 
         [HttpPost, Route("8"), XrpcCall("demodata.get_hitchart")]
-        public ActionResult<EamuseXrpcData> GetHitchart([FromBody] EamuseXrpcData data)
+        public async Task<ActionResult<EamuseXrpcData>> GetHitchart([FromBody] EamuseXrpcData data)
         {
-            int[] hitChart = new int[]
-            {
-                70000110,
-                80000016,
-                60000080,
-                50000071,
-                60000115,
-                30000004,
-                70000079,
-                50000113,
-                80000086,
-                70000033
-            };
+            ClanMusicInfo mInfo = await ClanMusicInfo.Instance;
 
-            XElement orgElem = new XElement("hitchart_org", new XAttribute("count", hitChart.Length));
+            List<int> hitChart = mInfo.GetRandomSongs(10);
 
-            for (short i = 0; i < hitChart.Length; ++i)
+            XElement orgElem = new XElement("hitchart_org", new XAttribute("count", hitChart.Count));
+
+            for (short i = 0; i < hitChart.Count; ++i)
             {
                 orgElem.Add(new XElement("rankdata",
                     new KS32("music_id", hitChart[i]),
