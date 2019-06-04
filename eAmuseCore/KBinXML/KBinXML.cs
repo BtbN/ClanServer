@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using System.Xml.Linq;
 
@@ -159,7 +159,7 @@ namespace eAmuseCore.KBinXML
                 if (count != 1)
                     throw new FormatException("String value cannot have a count != 1.");
 
-                byte[] res = BinEncoding.GetBytes(node.Value);
+                byte[] res = BinEncoding.GetBytes(node.Value.Trim());
                 Array.Resize(ref res, res.Length + 1);
                 res[res.Length - 1] = 0;
                 return res;
