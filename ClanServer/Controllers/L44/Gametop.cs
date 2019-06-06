@@ -477,8 +477,6 @@ namespace ClanServer.Controllers.L44
                 .Where(s => s.ProfileID == profile.ID)
                 .GroupBy(s => s.MusicID);
 
-            Console.WriteLine(scoreGroups.ToString());
-
             XElement mdataList = new XElement("mdata_list");
 
             foreach (var scoreGroup in scoreGroups)
