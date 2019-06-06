@@ -34,7 +34,8 @@ namespace ClanServer.Controllers.L44
             List<int> recommendedMusic =
                 await cache.GetOrCreateAsync(CacheKeys.GetRecommendedSongsKey(jid), async entry =>
                 {
-                    entry.SlidingExpiration = TimeSpan.FromMinutes(30);
+                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+                    entry.SlidingExpiration = TimeSpan.FromMinutes(2);
                     return (await ClanMusicInfo.Instance).GetRandomSongs(10);
                 });
 

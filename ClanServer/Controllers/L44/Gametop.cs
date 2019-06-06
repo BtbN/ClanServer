@@ -20,11 +20,9 @@ namespace ClanServer.Controllers.L44
     public class GametopController : ControllerBase
     {
         private readonly ClanServerContext ctx;
-        private readonly IMemoryCache cache;
 
-        public GametopController(IMemoryCache cache, ClanServerContext ctx)
+        public GametopController(ClanServerContext ctx)
         {
-            this.cache = cache;
             this.ctx = ctx;
         }
 
@@ -162,8 +160,6 @@ namespace ClanServer.Controllers.L44
 
             bool changed = false;
             bool freshProfile = false;
-
-            cache.Remove(CacheKeys.GetRecommendedSongsKey(profile.ID));
 
             if (profile.ClanData == null)
             {
