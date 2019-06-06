@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,16 +20,7 @@ namespace ClanServer.Controllers.L44
         {
             string locationId = data.Document.Element("call").Element("shopinfo").Element("shop").Element("locationid").Value;
 
-            data.Document = new XDocument(new XElement("response", new XElement("shopinfo", new XElement("data",
-                new KU32("cabid", 1),
-                new KStr("locationid", locationId),
-                new KU8("tax_phase", 0),
-                new XElement("facility",
-                    new KU32("exist", 0)
-                ),
-                new KU64("event_flag", 0),
-                GametopController.GetInfoElement()
-            ))));
+            data.Document = new XDocument(new XElement("response", new XElement("shopinfo", GametopController.GetFacilityDataElement(locationId))));
 
             return data;
         }

@@ -17,8 +17,8 @@ namespace eAmuseTest
         static void Main()
         {
             string compress = "lz77";
-            string eamuse_info = "1-5cf3b76a-205f";
-            byte[] data = HexToBytes("7c493a49c0ae494ad26cb2efd493a9858528c6094220f3857b0157101cfe12230b39a8");
+            string eamuse_info = "1-5cf9445d-0dfe";
+            byte[] data = HexToBytes("93b01743b29ca06e7500db42d83c70843dc776d0617ac96ba0768dd6b457554591d4b8b5f963e12d5fbb5075684c2a9acbfc462aa52686a720c57b3e44373008178684f9fd7ddad3c3a1e9fe1422ae08b9b872520a64cc195a9c04585149ec8de30220345c023663ae916068117ab7d5619362019d18a6f789bbd27e4ee027ce236d2b8d6c0f0917c8990083b741b3958cdf770f970df13088f931da949d1c9f685ba7848a15c3b77083357a6fb430b8a914bf55249f092c2baf14adfa8a7ab6bd430cc6ca5b4a35ea8c893aaa0c88ae6305240d5ae479976caf35e29d943ec628752c191ae40d0998c28e3280b6a55f8198ae");
 
             compress = compress.ToLower();
 
