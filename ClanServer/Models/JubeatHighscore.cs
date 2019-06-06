@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ClanServer.Models
 {
-    public class JubeatScore
+    public class JubeatHighscore
     {
         public int ID { get; set; }
 
@@ -24,19 +24,13 @@ namespace ClanServer.Models
 
         public sbyte Clear { get; set; }
 
-        public short NumPerfect { get; set; }
+        public int PlayCount { get; set; }
 
-        public short NumGreat { get; set; }
+        public int ClearCount { get; set; }
 
-        public short NumGood { get; set; }
+        public int FcCount { get; set; }
 
-        public short NumPoor { get; set; }
-
-        public short NumMiss { get; set; }
-
-        public bool IsHardMode { get; set; }
-
-        public bool IsHazardMode { get; set; }
+        public int ExcCount { get; set; }
 
         [MinLength(30), MaxLength(30)]
         public byte[] Bar { get; set; }
