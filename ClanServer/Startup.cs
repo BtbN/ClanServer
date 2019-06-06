@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
 
 namespace ClanServer
@@ -17,8 +18,16 @@ namespace ClanServer
     {
         public const int Port = 9091;
 
-        public Startup(IConfiguration configuration)
+#pragma warning disable CS0618
+        public static readonly LoggerFactory LogFactory
+            = new LoggerFactory(new[] { new ConsoleLoggerProvider((_, __) => true, true) });
+#pragma warning restore CS0618
+
+        private readonly IHostingEnvironment CurEnv;
+
+        public Startup(IHostingEnvironment env, IConfiguration configuration)
         {
+            CurEnv = env;
             Configuration = configuration;
         }
 
@@ -31,6 +40,9 @@ namespace ClanServer
             services
                 .AddDbContext<ClanServerContext>(options =>
                 {
+                    if (CurEnv.IsDevelopment())
+                        options.UseLoggerFactory(LogFactory);
+
                     options.UseSqlite("Data Source=clanserver.db");
                 });
 

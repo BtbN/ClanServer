@@ -42,7 +42,7 @@ namespace ClanServer.Controllers.L44
         {
             XElement gametop = data.Document.Element("call").Element("gametop");
             XElement player = gametop.Element("data").Element("player");
-            byte[] refId = player.Element("refid").Value.ToBytesFromHex();
+            string refId = player.Element("refid").Value.ToUpper();
             string name = player.Element("name").Value;
 
             Card card = await ctx.Cards
@@ -50,7 +50,7 @@ namespace ClanServer.Controllers.L44
                 .ThenInclude(p => p.Jubilitys)
                 .Include(c => c.Player.JubeatProfile.ClanData)
                 .Include(c => c.Player.JubeatProfile.ClanSettings)
-                .SingleOrDefaultAsync(c => c.RefId.SequenceEqual(refId));
+                .SingleOrDefaultAsync(c => c.RefId == refId);
 
             if (card == null || card.Player == null)
                 return NotFound();
@@ -86,14 +86,14 @@ namespace ClanServer.Controllers.L44
             var gametop = data.Document.Element("call").Element("gametop");
             var player = gametop.Element("data").Element("player");
 
-            byte[] refId = player.Element("refid").Value.ToBytesFromHex();
+            string refId = player.Element("refid").Value.ToUpper();
 
             Card card = await ctx.Cards
                 .Include(c => c.Player.JubeatProfile)
                 .ThenInclude(p => p.Jubilitys)
                 .Include(c => c.Player.JubeatProfile.ClanData)
                 .Include(c => c.Player.JubeatProfile.ClanSettings)
-                .SingleOrDefaultAsync(c => c.RefId.SequenceEqual(refId));
+                .SingleOrDefaultAsync(c => c.RefId == refId);
 
             if (card == null || card.Player == null || card.Player.JubeatProfile == null)
                 return NotFound();
@@ -473,9 +473,11 @@ namespace ClanServer.Controllers.L44
             if (profile == null)
                 return NotFound();
 
-            var scoreGroups = ctx.JubeatScores
+            var scoreGroups = ctx.JubeatHighscores
                 .Where(s => s.ProfileID == profile.ID)
                 .GroupBy(s => s.MusicID);
+
+            Console.WriteLine(scoreGroups.ToString());
 
             XElement mdataList = new XElement("mdata_list");
 
@@ -489,17 +491,17 @@ namespace ClanServer.Controllers.L44
                 var exCnt = new int[3];
                 var bars = new[] { new byte[30], new byte[30], new byte[30] };
 
-                foreach (JubeatScore score in scoreGroup)
+                foreach (JubeatHighscore highscore in scoreGroup)
                 {
-                    int seq = score.Seq;
+                    int seq = highscore.Seq;
 
-                    scoreRes[seq] = score.Score;
-                    clearRes[seq] = score.Clear;
-                    playCnt[seq] = score.PlayCount;
-                    clearCnt[seq] = score.ClearCount;
-                    fcCnt[seq] = score.FcCount;
-                    exCnt[seq] = score.ExcCount;
-                    bars[seq] = score.MBar;
+                    scoreRes[seq] = highscore.Score;
+                    clearRes[seq] = highscore.Clear;
+                    playCnt[seq] = highscore.PlayCount;
+                    clearCnt[seq] = highscore.ClearCount;
+                    fcCnt[seq] = highscore.FcCount;
+                    exCnt[seq] = highscore.ExcCount;
+                    bars[seq] = highscore.Bar;
                 }
 
                 mdataList.Add(new XElement("music", new XAttribute("music_id", scoreGroup.Key),

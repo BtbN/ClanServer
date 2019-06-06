@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
@@ -30,11 +30,23 @@ namespace ClanServer
 
             var jbScoreEntity = modelBuilder.Entity<JubeatScore>();
             jbScoreEntity
-                .HasIndex(score => new { score.ProfileID, score.MusicID, score.Seq })
-                .IsUnique();
+                .HasIndex(score => new { score.ProfileID, score.MusicID, score.Seq });
             jbScoreEntity
                 .HasIndex(score => new { score.ProfileID, score.MusicID });
             jbScoreEntity
+                .HasIndex(score => new { score.MusicID, score.Seq });
+            jbScoreEntity
+                .HasIndex(score => score.ProfileID);
+
+            var jbHighScoreEntity = modelBuilder.Entity<JubeatHighscore>();
+            jbHighScoreEntity
+                .HasIndex(score => new { score.ProfileID, score.MusicID, score.Seq })
+                .IsUnique();
+            jbHighScoreEntity
+                .HasIndex(score => new { score.ProfileID, score.MusicID });
+            jbHighScoreEntity
+                .HasIndex(score => new { score.MusicID, score.Seq });
+            jbHighScoreEntity
                 .HasIndex(score => score.ProfileID);
         }
 
@@ -44,5 +56,6 @@ namespace ClanServer
         public DbSet<JubeatClanProfileData> JubeatClanProfileData { get; set; }
         public DbSet<JubeatProfile> JubeatProfiles { get; set; }
         public DbSet<JubeatScore> JubeatScores { get; set; }
+        public DbSet<JubeatHighscore> JubeatHighscores { get; set; }
     }
 }

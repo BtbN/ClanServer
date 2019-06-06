@@ -100,21 +100,12 @@ namespace ClanServer.Controllers.L44
                     int musicId = int.Parse(tune.Element("music").Value);
                     sbyte seq = sbyte.Parse(tuneScore.Attribute("seq").Value);
 
-                    JubeatScore score = ctx.JubeatScores
-                        .Where(s => s.MusicID == musicId && s.Seq == seq && s.ProfileID == profile.ID)
-                        .SingleOrDefault();
-
-                    if (score == null)
+                    JubeatScore score = new JubeatScore()
                     {
-                        score = new JubeatScore()
-                        {
-                            ProfileID = profile.ID,
-                            MusicID = musicId,
-                            Seq = seq
-                        };
-
-                        ctx.JubeatScores.Add(score);
-                    }
+                        ProfileID = profile.ID,
+                        MusicID = musicId,
+                        Seq = seq
+                    };
 
                     score.Timestamp = long.Parse(tune.Element("timestamp").Value);
                     score.Score = int.Parse(tunePlayer.Element("score").Value);
@@ -126,15 +117,40 @@ namespace ClanServer.Controllers.L44
                     score.NumGood = short.Parse(tunePlayer.Element("nr_good").Value);
                     score.NumPoor = short.Parse(tunePlayer.Element("nr_poor").Value);
                     score.NumMiss = short.Parse(tunePlayer.Element("nr_miss").Value);
-                    score.BestScore = int.Parse(tunePlayer.Element("best_score").Value);
-                    score.BestClear = int.Parse(tunePlayer.Element("best_clear").Value);
-                    score.PlayCount = int.Parse(tunePlayer.Element("play_cnt").Value);
-                    score.ClearCount = int.Parse(tunePlayer.Element("clear_cnt").Value);
-                    score.FcCount = int.Parse(tunePlayer.Element("fc_cnt").Value);
-                    score.ExcCount = int.Parse(tunePlayer.Element("ex_cnt").Value);
 
-                    string[] mbarStrs = tunePlayer.Element("mbar").Value.Split(' ');
-                    score.MBar = Array.ConvertAll(mbarStrs, s => byte.Parse(s));
+                    string[] mbarStrs = tunePlayer.Element("play_mbar").Value.Split(' ');
+                    score.Bar = Array.ConvertAll(mbarStrs, s => byte.Parse(s));
+
+                    ctx.JubeatScores.Add(score);
+
+                    JubeatHighscore highscore = ctx.JubeatHighscores
+                        .Where(s => s.MusicID == musicId && s.Seq == seq && s.ProfileID == profile.ID)
+                        .SingleOrDefault();
+
+                    if (highscore == null)
+                    {
+                        highscore = new JubeatHighscore()
+                        {
+                            ProfileID = profile.ID,
+                            MusicID = musicId,
+                            Seq = seq
+                        };
+
+                        ctx.JubeatHighscores.Add(highscore);
+                    }
+
+                    if (score.Score > highscore.Score)
+                        highscore.Timestamp = score.Timestamp;
+
+                    highscore.Score = int.Parse(tunePlayer.Element("best_score").Value);
+                    highscore.Clear = sbyte.Parse(tunePlayer.Element("best_clear").Value);
+                    highscore.PlayCount = int.Parse(tunePlayer.Element("play_cnt").Value);
+                    highscore.ClearCount = int.Parse(tunePlayer.Element("clear_cnt").Value);
+                    highscore.FcCount = int.Parse(tunePlayer.Element("fc_cnt").Value);
+                    highscore.ExcCount = int.Parse(tunePlayer.Element("ex_cnt").Value);
+
+                    mbarStrs = tunePlayer.Element("mbar").Value.Split(' ');
+                    highscore.Bar = Array.ConvertAll(mbarStrs, s => byte.Parse(s));
                 }
 
                 XElement jubility = playerE.Element("jubility");

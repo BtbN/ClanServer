@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -22,5 +22,7 @@ namespace ClanServer.Models
         public ICollection<JubeatClanJubility> Jubilitys { get; set; }
 
         public ICollection<JubeatScore> Scores { get; set; }
+
+        public ICollection<JubeatHighscore> Highscores { get; set; }
     }
 }
