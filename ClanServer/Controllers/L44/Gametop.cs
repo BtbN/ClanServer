@@ -26,6 +26,17 @@ namespace ClanServer.Controllers.L44
             this.ctx = ctx;
         }
 
+        [HttpPost, Route("8"), XrpcCall("gametop.get_info")]
+        public ActionResult<EamuseXrpcData> GetInfo([FromBody] EamuseXrpcData data)
+        {
+            XElement dataE = GetFacilityDataElement("ABCD1234");
+            dataE.Add(GetInfoElement());
+
+            data.Document = new XDocument(new XElement("response", new XElement("gametop", dataE)));
+
+            return data;
+        }
+
         [HttpPost, Route("8"), XrpcCall("gametop.regist")]
         public async Task<ActionResult<EamuseXrpcData>> Register([FromBody] EamuseXrpcData data)
         {
@@ -103,6 +114,20 @@ namespace ClanServer.Controllers.L44
             }
 
             return data;
+        }
+
+        public static XElement GetFacilityDataElement(string locationId)
+        {
+            return new XElement("data",
+                new KU32("cabid", 1),
+                new KStr("locationid", locationId),
+                new KU8("tax_phase", 0),
+                new XElement("facility",
+                    new KU32("exist", 0)
+                ),
+                new KU64("event_flag", 0),
+                GetInfoElement()
+            );
         }
 
         public static XElement GetInfoElement()

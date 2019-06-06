@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -31,6 +31,11 @@ namespace ClanServer.Controllers.L44
             {
                 XElement dataE = xrpcData.Document.Element("call").Element("gameend").Element("data");
                 XElement playerE = dataE.Element("player");
+
+                xrpcData.Document = new XDocument(new XElement("response", new XElement("gameend")));
+
+                if (playerE == null)
+                    return xrpcData;
 
                 int jid = int.Parse(playerE.Element("jid").Value);
 
@@ -151,7 +156,6 @@ namespace ClanServer.Controllers.L44
 
                 await ctx.SaveChangesAsync();
 
-                xrpcData.Document = new XDocument(new XElement("response", new XElement("gameend")));
                 return xrpcData;
             }
             catch(Exception e)
@@ -169,6 +173,11 @@ namespace ClanServer.Controllers.L44
                 XElement dataE = xrpcData.Document.Element("call").Element("gameend").Element("data");
                 XElement playerE = dataE.Element("player");
 
+                xrpcData.Document = new XDocument(new XElement("response", new XElement("gameend")));
+
+                if (playerE == null)
+                    return xrpcData;
+
                 int jid = int.Parse(playerE.Element("jid").Value);
 
                 JubeatProfile profile = await ctx.JubeatProfiles
@@ -184,7 +193,6 @@ namespace ClanServer.Controllers.L44
 
                 await ctx.SaveChangesAsync();
 
-                xrpcData.Document = new XDocument(new XElement("response", new XElement("gameend")));
                 return xrpcData;
             }
             catch (Exception e)
