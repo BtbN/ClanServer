@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 using eAmuseCore.KBinXML;
 
@@ -19,9 +20,11 @@ namespace ClanServer.Controllers.L44
     public class GametopController : ControllerBase
     {
         private readonly ClanServerContext ctx;
+        private readonly IMemoryCache cache;
 
-        public GametopController(ClanServerContext ctx)
+        public GametopController(IMemoryCache cache, ClanServerContext ctx)
         {
+            this.cache = cache;
             this.ctx = ctx;
         }
 
@@ -158,11 +161,9 @@ namespace ClanServer.Controllers.L44
             var profile = player.JubeatProfile;
 
             bool changed = false;
-
-            await ctx.Entry(profile).Reference(p => p.ClanData).LoadAsync();
-            await ctx.Entry(profile).Reference(p => p.ClanSettings).LoadAsync();
-
             bool freshProfile = false;
+
+            cache.Remove(CacheKeys.GetRecommendedSongsKey(profile.ID));
 
             if (profile.ClanData == null)
             {
@@ -171,10 +172,10 @@ namespace ClanServer.Controllers.L44
                 profile.ClanData = new JubeatClanProfileData()
                 {
                     Team = (byte)(rng.Next(1, 5)),
-                    Street = rng.Next(1, 19),
+                    Street = rng.Next(1, 9),
                     Section = rng.Next(1, 5),
-                    HouseNo1 = (short)(rng.Next(1, 25)),
-                    HouseNo2 = (short)(rng.Next(1, 241)),
+                    HouseNo1 = (short)(rng.Next(1, 10)),
+                    HouseNo2 = (short)(rng.Next(1, 100)),
 
                     TuneCount = 0,
                     ClearCount = 0,

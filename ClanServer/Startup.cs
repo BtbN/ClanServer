@@ -26,10 +26,13 @@ namespace ClanServer
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<ClanServerContext>(options =>
-            {
-                options.UseSqlite("Data Source=clanserver.db");
-            });
+            services.AddMemoryCache();
+
+            services
+                .AddDbContext<ClanServerContext>(options =>
+                {
+                    options.UseSqlite("Data Source=clanserver.db");
+                });
 
             services
                 .AddMvc(options =>

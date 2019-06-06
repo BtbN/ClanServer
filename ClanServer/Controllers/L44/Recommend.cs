@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 using eAmuseCore.KBinXML;
 
@@ -15,17 +16,27 @@ namespace ClanServer.Controllers.L44
     [ApiController, Route("L44")]
     public class RecommendController : ControllerBase
     {
+        private readonly Random rng = new Random();
+        private readonly IMemoryCache cache;
+
+        public RecommendController(IMemoryCache cache)
+        {
+            this.cache = cache;
+        }
+
         [HttpPost, Route("8"), XrpcCall("recommend.get_recommend")]
         public async Task<ActionResult<EamuseXrpcData>> GetRecommend([FromBody] EamuseXrpcData data)
         {
             XElement recommend = data.Document.Element("call").Element("recommend");
             XElement player = recommend.Element("data").Element("player");
-            _ = int.Parse(player.Element("jid").Value);
+            int jid = int.Parse(player.Element("jid").Value);
 
-            ClanMusicInfo mInfo = await ClanMusicInfo.Instance;
-
-            List<int> recommendedMusic = mInfo.GetRandomSongs(10);
-            Random rng = new Random();
+            List<int> recommendedMusic =
+                await cache.GetOrCreateAsync(CacheKeys.GetRecommendedSongsKey(jid), async entry =>
+                {
+                    entry.SlidingExpiration = TimeSpan.FromMinutes(30);
+                    return (await ClanMusicInfo.Instance).GetRandomSongs(10);
+                });
 
             XElement musicList = new XElement("music_list");
 
