@@ -473,9 +473,19 @@ namespace ClanServer.Controllers.L44
             if (profile == null)
                 return NotFound();
 
-            var scoreGroups = ctx.JubeatHighscores
+            List<JubeatHighscore> scores = await ctx.JubeatHighscores
                 .Where(s => s.ProfileID == profile.ID)
-                .GroupBy(s => s.MusicID);
+                .ToListAsync();
+
+            var scoreGroups = new Dictionary<int, JubeatHighscore[]>();
+
+            foreach (var score in scores)
+            {
+                if (!scoreGroups.ContainsKey(score.MusicID))
+                    scoreGroups.Add(score.MusicID, new JubeatHighscore[3]);
+
+                scoreGroups[score.MusicID][score.Seq] = score;
+            }
 
             XElement mdataList = new XElement("mdata_list");
 
@@ -489,17 +499,19 @@ namespace ClanServer.Controllers.L44
                 var exCnt = new int[3];
                 var bars = new[] { new byte[30], new byte[30], new byte[30] };
 
-                foreach (JubeatHighscore highscore in scoreGroup)
+                for (int seq = 0; seq < 3; ++seq)
                 {
-                    int seq = highscore.Seq;
+                    JubeatHighscore score = scoreGroup.Value[seq];
+                    if (score == null)
+                        continue;
 
-                    scoreRes[seq] = highscore.Score;
-                    clearRes[seq] = highscore.Clear;
-                    playCnt[seq] = highscore.PlayCount;
-                    clearCnt[seq] = highscore.ClearCount;
-                    fcCnt[seq] = highscore.FcCount;
-                    exCnt[seq] = highscore.ExcCount;
-                    bars[seq] = highscore.Bar;
+                    scoreRes[seq] = score.Score;
+                    clearRes[seq] = score.Clear;
+                    playCnt[seq] = score.PlayCount;
+                    clearCnt[seq] = score.ClearCount;
+                    fcCnt[seq] = score.FcCount;
+                    exCnt[seq] = score.ExcCount;
+                    bars[seq] = score.Bar;
                 }
 
                 mdataList.Add(new XElement("music", new XAttribute("music_id", scoreGroup.Key),
@@ -509,9 +521,9 @@ namespace ClanServer.Controllers.L44
                     new KS32("clear_cnt", clearCnt),
                     new KS32("fc_cnt", fcCnt),
                     new KS32("ex_cnt", exCnt),
-                    new KU8("bar", bars[2]).AddAttr("seq", 2),
                     new KU8("bar", bars[0]).AddAttr("seq", 0),
-                    new KU8("bar", bars[1]).AddAttr("seq", 1)
+                    new KU8("bar", bars[1]).AddAttr("seq", 1),
+                    new KU8("bar", bars[2]).AddAttr("seq", 2)
                 ));
             }
             
