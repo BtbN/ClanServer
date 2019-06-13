@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,17 +13,21 @@ namespace ClanServer
 {
     public class Program
     {
-        public static void Main()
+        public static void Main(string[] args)
         {
-            var builder = new WebHostBuilder()
+            var builder = CreateWebHostBuilder(args);
+            var host = builder.Build();
+
+            host.Run();
+        }
+
+        public static IWebHostBuilder CreateWebHostBuilder(string[] _)
+        {
+            return new WebHostBuilder()
                 .UseContentRoot(AppContext.BaseDirectory)
                 .UseStartup<Startup>()
                 .UseKestrel()
                 .ConfigureKestrel(ConfigureKestrel);
-
-            var host = builder.Build();
-
-            host.Run();
         }
 
         private static void ConfigureKestrel(WebHostBuilderContext context, KestrelServerOptions options)
