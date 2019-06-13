@@ -30,15 +30,17 @@ namespace ClanServer
 
             var jbScoreEntity = modelBuilder.Entity<JubeatScore>();
             jbScoreEntity
+                .HasIndex(score => score.ProfileID);
+            jbScoreEntity
                 .HasIndex(score => new { score.ProfileID, score.MusicID, score.Seq });
             jbScoreEntity
                 .HasIndex(score => new { score.ProfileID, score.MusicID });
             jbScoreEntity
                 .HasIndex(score => new { score.MusicID, score.Seq });
-            jbScoreEntity
-                .HasIndex(score => score.ProfileID);
 
             var jbHighScoreEntity = modelBuilder.Entity<JubeatHighscore>();
+            jbHighScoreEntity
+                .HasIndex(score => score.ProfileID);
             jbHighScoreEntity
                 .HasIndex(score => new { score.ProfileID, score.MusicID, score.Seq })
                 .IsUnique();
@@ -46,8 +48,6 @@ namespace ClanServer
                 .HasIndex(score => new { score.ProfileID, score.MusicID });
             jbHighScoreEntity
                 .HasIndex(score => new { score.MusicID, score.Seq });
-            jbHighScoreEntity
-                .HasIndex(score => score.ProfileID);
         }
 
         public DbSet<Player> Players { get; set; }

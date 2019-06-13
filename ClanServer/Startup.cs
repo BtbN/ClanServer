@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -60,9 +60,9 @@ namespace ClanServer
         public void Configure(IApplicationBuilder app)
         {
             using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
+            using (var context = serviceScope.ServiceProvider.GetRequiredService<ClanServerContext>())
             {
-                var context = serviceScope.ServiceProvider.GetRequiredService<ClanServerContext>();
-                context.Database.EnsureCreated();
+                context.Database.Migrate();
             }
 
             app.Use(async (context, next) =>
