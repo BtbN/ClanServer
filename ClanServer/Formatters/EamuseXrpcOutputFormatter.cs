@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -39,7 +39,7 @@ namespace ClanServer.Formatters
 
                 string algo = "none";
 
-                var compressed = LZ77.Compress(resData).ToArray();
+                var compressed = LZ77.Compress(resData, 32).ToArray();
                 if (compressed.Length < resData.Length)
                 {
                     resData = compressed;
