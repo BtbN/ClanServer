@@ -124,8 +124,7 @@ namespace ClanServer.Controllers.L44
                     ctx.JubeatScores.Add(score);
 
                     JubeatHighscore highscore = ctx.JubeatHighscores
-                        .Where(s => s.MusicID == musicId && s.Seq == seq && s.ProfileID == profile.ID)
-                        .SingleOrDefault();
+                        .SingleOrDefault(s => s.MusicID == musicId && s.Seq == seq && s.ProfileID == profile.ID);
 
                     if (highscore == null)
                     {
