@@ -89,7 +89,7 @@ namespace ClanServer.Formatters
                 switch (compAlgo.ToLower())
                 {
                     case "lz77":
-                        return LZ77.Decompress(data).ToArray();
+                        return LZ77.Decompress(data);
                     case "none":
                         return data;
                     default:
