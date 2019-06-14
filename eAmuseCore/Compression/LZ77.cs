@@ -1,103 +1,50 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace eAmuseCore.Compression
 {
-    public class RepeatingRingBuffer
-    {
-        private readonly byte[] buf;
-        private readonly int mod;
-        private int pos;
-
-        public RepeatingRingBuffer(int size)
-        {
-            if (size == 0 || (size & (size - 1)) != 0)
-                throw new ArgumentException("Size is not a power of two.", "size");
-
-            buf = new byte[size];
-            mod = size - 1;
-            pos = 0;
-        }
-
-        public byte this[int index]
-        {
-            get => buf[(pos + index) & mod];
-            set => buf[(pos + index) & mod] = value;
-        }
-
-        public int Size
-        {
-            get => buf.Length;
-        }
-
-        public void Append(byte b)
-        {
-            buf[pos++ & mod] = b;
-        }
-
-        public IEnumerable<byte> Slice(int start, int end)
-        {
-            for (int i = start; i < end; ++i)
-            {
-                if (start < 0 && i >= 0)
-                    yield return this[start + (i % start)];
-                else
-                    yield return this[i];
-            }
-        }
-    }
-
     public static class LZ77
     {
         private const int minLength = 3;
 
-        public static IEnumerable<byte> Decompress(IEnumerable<byte> data)
+        public static byte[] Decompress(byte[] data)
         {
-            RepeatingRingBuffer buffer = new RepeatingRingBuffer(0x1000);
+            List<byte> res = new List<byte>();
+
+            int pos = 0;
             int state = 0;
 
-            using (var iter = data.GetEnumerator())
+            while (pos < data.Length)
             {
-                while (iter.MoveNext())
+                state >>= 1;
+                if (state <= 1)
+                    state = data[pos++] | 0x100;
+
+                if ((state & 1) != 0)
                 {
-                    state >>= 1;
-                    if (state <= 1)
+                    res.Add(data[pos++]);
+                }
+                else
+                {
+                    byte byte1 = data[pos++];
+                    byte byte2 = data[pos++];
+
+                    int length = (byte2 & 0xf) + minLength;
+                    int distance = (byte1 << 4) | (byte2 >> 4);
+
+                    if (distance == 0)
+                        break;
+
+                    int resPos = res.Count;
+                    for (int i = 0; i < length; ++i)
                     {
-                        state = iter.Current | 0x100;
-                        if (!iter.MoveNext())
-                            yield break;
-                    }
-
-                    if ((state & 1) != 0)
-                    {
-                        yield return iter.Current;
-                        buffer.Append(iter.Current);
-                    }
-                    else
-                    {
-                        byte byte1 = iter.Current;
-                        if (!iter.MoveNext())
-                            yield break;
-                        byte byte2 = iter.Current;
-
-                        int length = (byte2 & 0xf) + minLength;
-                        int distance = (byte1 << 4) | (byte2 >> 4);
-
-                        if (distance == 0)
-                            yield break;
-
-                        for (int i = 0; i < length; ++i)
-                        {
-                            byte b = buffer[-distance];
-                            yield return b;
-                            buffer.Append(b);
-                        }
+                        int o = resPos - distance + i;
+                        res.Add((o < 0) ? (byte)0 : res[o]);
                     }
                 }
             }
+
+            return res.ToArray();
         }
 
         private struct Match

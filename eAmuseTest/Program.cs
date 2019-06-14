@@ -27,7 +27,7 @@ namespace eAmuseTest
 
             byte[] rawData = data;
             if (compress == "lz77")
-                rawData = LZ77.Decompress(data).ToArray();
+                rawData = LZ77.Decompress(data);
             else if (compress != "none")
                 throw new ArgumentException("Unsupported compression algorithm");
 

@@ -27,9 +27,7 @@ namespace ClanServer.Data.L44
                             stream.CopyTo(ms);
                             return new ClanMusicInfo(
                                 new KBinXML(
-                                    LZ77.Decompress(
-                                        ms.ToArray()
-                                    ).ToArray()
+                                    LZ77.Decompress(ms.ToArray())
                                 ).Document
                             );
                         }
