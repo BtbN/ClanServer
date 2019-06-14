@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,9 +8,9 @@ namespace eAmuseCore.Compression
 {
     public class RepeatingRingBuffer
     {
-        private byte[] buf;
+        private readonly byte[] buf;
+        private readonly int mod;
         private int pos;
-        private int mod;
 
         public RepeatingRingBuffer(int size)
         {
@@ -106,7 +106,7 @@ namespace eAmuseCore.Compression
             public int length;
         }
 
-        private static Match findLongestMatch(RepeatingRingBuffer data, int prefetchLength, int windowSize, int minLength)
+        private static Match FindLongestMatch(byte[] data, int offset, int windowSize, int lookAhead, int minLength)
         {
             Match res = new Match
             {
@@ -114,22 +114,16 @@ namespace eAmuseCore.Compression
                 length = -1
             };
 
-            minLength = Math.Min(1, minLength);
+            int maxLength = Math.Min(lookAhead, data.Length - offset);
 
-            for (int j = 0; j >= minLength - prefetchLength; --j)
+            for (int matchLength = maxLength; matchLength >= minLength; --matchLength)
             {
-                var sub = data.Slice(-prefetchLength, j);
-                int subLength = j + prefetchLength;
-
-                for (int distance = 1; distance < windowSize - prefetchLength; ++distance)
+                for (int distance = 1; distance <= windowSize; ++distance)
                 {
-                    int start = -prefetchLength - distance;
-                    var match = data.Slice(start, start + subLength);
-
-                    if (match.SequenceEqual(sub))
+                    if (data.RepeatingSequencesEqual(offset, matchLength, offset - distance, distance))
                     {
                         res.distance = distance;
-                        res.length = subLength;
+                        res.length = matchLength;
                         return res;
                     }
                 }
@@ -138,77 +132,68 @@ namespace eAmuseCore.Compression
             return res;
         }
 
-        public static IEnumerable<byte> Compress(IEnumerable<byte> data, int windowSize = 256, int lookAhead = 0xf + minLength)
+        private static bool RepeatingSequencesEqual(this byte[] arr, int matchOffset, int matchLength, int compOffset, int compLength)
         {
-            if (lookAhead < 3 || lookAhead > 0xf + minLength)
+            for (int i = 0; i < matchLength; ++i)
+            {
+                if (arr.GV(matchOffset + i) != arr.GV(compOffset + (i % compLength)))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static byte GV(this byte[] arr, int i)
+        {
+            return (i < 0) ? (byte)0 : arr[i];
+        }
+
+        public static byte[] Compress(byte[] data, int windowSize = 256, int lookAhead = 0xf + minLength)
+        {
+            if (lookAhead < minLength || lookAhead > 0xf + minLength)
                 throw new ArgumentException("lookAhead out of range", "lookAhead");
             if (windowSize < lookAhead)
                 throw new ArgumentException("windowSize needs to be larger than lookAhead", "windowSize");
-            if ((windowSize & (windowSize - 1)) != 0)
-                throw new ArgumentException("windowSize is not a power of two.", "windowSize");
 
-            windowSize = Math.Min(windowSize, 0x1000);
-            int prefetchLenght = 0;
+            byte[] result = new byte[data.Length + (data.Length / 8) + 4];
+            int resOffset = 1;
+            int resStateOffset = 0;
+            int resStateShift = 0;
+            int offset = 0;
 
-            RepeatingRingBuffer inputQueue = new RepeatingRingBuffer(windowSize);
-            Queue<byte> outputQueue = new Queue<byte>();
-            Queue<byte> state = new Queue<byte>();
-            bool finished = false;
-
-            using (var iter = data.GetEnumerator())
+            while (offset < data.Length)
             {
-                while (true)
+                Match match = FindLongestMatch(data, offset, windowSize, lookAhead, minLength);
+                if (match.length >= minLength && match.distance > 0)
                 {
-                    while (prefetchLenght < lookAhead && iter.MoveNext())
-                    {
-                        inputQueue.Append(iter.Current);
-                        prefetchLenght += 1;
-                    }
+                    int binLength = match.length - minLength;
 
-                    if (prefetchLenght <= 0)
-                    {
-                        state.Enqueue(0);
-                        outputQueue.Enqueue(0);
-                        outputQueue.Enqueue(0);
-                        finished = true;
-                    }
-                    else
-                    {
-                        Match match = findLongestMatch(inputQueue, prefetchLenght, windowSize, minLength);
-                        if (match.length >= minLength && match.distance > 0)
-                        {
-                            prefetchLenght -= match.length;
-                            match.length -= minLength;
+#if DEBUG
+                    if (binLength > 0xf || match.distance > 0xfff || match.length > data.Length - offset)
+                        throw new Exception("INTERNAL ERROR: found match is invalid!");
+#endif
 
-                            if (match.length > 0xf || match.distance > 0xfff || prefetchLenght < 0)
-                                throw new Exception("INTERNAL ERROR: found match is invalid!");
+                    result[resOffset++] = (byte)(match.distance >> 4);
+                    result[resOffset++] = (byte)(((match.distance & 0xf) << 4) | binLength);
+                    resStateShift += 1;
+                    offset += match.length;
+                }
+                else
+                {
+                    result[resStateOffset] |= (byte)(1 << resStateShift++);
+                    result[resOffset++] = data[offset++];
+                }
 
-                            state.Enqueue(0);
-                            outputQueue.Enqueue((byte)(match.distance >> 4));
-                            outputQueue.Enqueue((byte)(((match.distance & 0xf) << 4) | match.length));
-                        }
-                        else
-                        {
-                            state.Enqueue(1);
-                            outputQueue.Enqueue(inputQueue[-prefetchLenght]);
-                            prefetchLenght -= 1;
-                        }
-                    }
-
-                    if (state.Count == 8 || finished)
-                    {
-                        yield return (byte)state.Select((b, i) => b << i).Sum();
-                        foreach (byte b in outputQueue)
-                            yield return b;
-
-                        state.Clear();
-                        outputQueue.Clear();
-                    }
-
-                    if (finished)
-                        yield break;
+                if (resStateShift >= 8)
+                {
+                    resStateShift = 0;
+                    resStateOffset = resOffset++;
                 }
             }
+
+            Array.Resize(ref result, resOffset + 2);
+
+            return result;
         }
     }
 }
