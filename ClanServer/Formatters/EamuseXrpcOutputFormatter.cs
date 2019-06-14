@@ -39,7 +39,7 @@ namespace ClanServer.Formatters
 
                 string algo = "none";
 
-                var compressed = LZ77.Compress(resData, 32).ToArray();
+                byte[] compressed = LZ77.Compress(resData);
                 if (compressed.Length < resData.Length)
                 {
                     resData = compressed;
