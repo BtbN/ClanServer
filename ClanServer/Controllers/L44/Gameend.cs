@@ -123,8 +123,8 @@ namespace ClanServer.Controllers.L44
 
                     ctx.JubeatScores.Add(score);
 
-                    JubeatHighscore highscore = ctx.JubeatHighscores
-                        .SingleOrDefault(s => s.MusicID == musicId && s.Seq == seq && s.ProfileID == profile.ID);
+                    JubeatHighscore highscore = await ctx.JubeatHighscores
+                        .SingleOrDefaultAsync(s => s.MusicID == musicId && s.Seq == seq && s.ProfileID == profile.ID);
 
                     if (highscore == null)
                     {
@@ -132,7 +132,8 @@ namespace ClanServer.Controllers.L44
                         {
                             ProfileID = profile.ID,
                             MusicID = musicId,
-                            Seq = seq
+                            Seq = seq,
+                            Bar = score.Bar
                         };
 
                         ctx.JubeatHighscores.Add(highscore);
@@ -148,8 +149,12 @@ namespace ClanServer.Controllers.L44
                     highscore.FcCount = int.Parse(tunePlayer.Element("fc_cnt").Value);
                     highscore.ExcCount = int.Parse(tunePlayer.Element("ex_cnt").Value);
 
-                    mbarStrs = tunePlayer.Element("mbar").Value.Split(' ');
-                    highscore.Bar = Array.ConvertAll(mbarStrs, s => byte.Parse(s));
+                    XElement mbarE = tunePlayer.Element("mbar");
+                    if (mbarE != null)
+                    {
+                        mbarStrs = mbarE.Value.Split(' ');
+                        highscore.Bar = Array.ConvertAll(mbarStrs, s => byte.Parse(s));
+                    }
                 }
 
                 XElement jubility = playerE.Element("jubility");
