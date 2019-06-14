@@ -22,13 +22,12 @@ namespace eAmuseTest
 
             compress = compress.ToLower();
 
-            IEnumerable<byte> decryptedData = data;
             if (eamuse_info != null)
-                decryptedData = RC4.ApplyEAmuseInfo(eamuse_info, data);
+                RC4.ApplyEAmuseInfo(eamuse_info, data);
 
-            var rawData = decryptedData;
+            byte[] rawData = data;
             if (compress == "lz77")
-                rawData = LZ77.Decompress(decryptedData);
+                rawData = LZ77.Decompress(data).ToArray();
             else if (compress != "none")
                 throw new ArgumentException("Unsupported compression algorithm");
 

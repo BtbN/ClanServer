@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -83,16 +83,15 @@ namespace ClanServer.Formatters
         {
             data = await Task.Run(() =>
             {
-                IEnumerable<byte> rawData = data;
                 if (eAmuseInfo != null)
-                    rawData = RC4.ApplyEAmuseInfo(eAmuseInfo, data);
+                    RC4.ApplyEAmuseInfo(eAmuseInfo, data);
 
                 switch (compAlgo.ToLower())
                 {
                     case "lz77":
-                        return LZ77.Decompress(rawData).ToArray();
+                        return LZ77.Decompress(data).ToArray();
                     case "none":
-                        return rawData.ToArray();
+                        return data;
                     default:
                         return null;
                 }

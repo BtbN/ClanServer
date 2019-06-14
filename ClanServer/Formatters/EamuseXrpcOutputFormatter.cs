@@ -48,7 +48,7 @@ namespace ClanServer.Formatters
                 compressed = null;
 
                 if (data.EamuseInfo != null)
-                    resData = RC4.ApplyEAmuseInfo(data.EamuseInfo, resData).ToArray();
+                    RC4.ApplyEAmuseInfo(data.EamuseInfo, resData);
 
                 return (resData, algo);
             });
