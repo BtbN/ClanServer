@@ -40,11 +40,13 @@ namespace ClanServer
             services
                 .AddDbContext<ClanServerContext>(options =>
                 {
+#if DEBUG
                     if (CurEnv.IsDevelopment())
                     {
                         options.UseLoggerFactory(LogFactory);
                         options.EnableSensitiveDataLogging();
                     }
+#endif
 
                     options.UseSqlite("Data Source=clanserver.db");
                 });
