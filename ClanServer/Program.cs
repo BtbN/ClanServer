@@ -18,6 +18,8 @@ namespace ClanServer
             var builder = CreateWebHostBuilder(args);
             var host = builder.Build();
 
+            Console.WriteLine($"Server URL: http://localhost:{Startup.Port}/core");
+
             host.Run();
         }
 
