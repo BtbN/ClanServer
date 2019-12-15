@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +13,12 @@ namespace ClanServer.Controllers.Core
     [ApiController, Route("core")]
     public class PcbTrackerController : ControllerBase
     {
+        [HttpPost("{model}/pcbtracker/alive")]
+        public ActionResult<EamuseXrpcData> Alive2([FromBody] EamuseXrpcData data, string model)
+        {
+            return Alive(data, model);
+        }
+
         [HttpPost, XrpcCall("pcbtracker.alive")]
         public ActionResult<EamuseXrpcData> Alive([FromBody] EamuseXrpcData data, [FromQuery] string model)
         {

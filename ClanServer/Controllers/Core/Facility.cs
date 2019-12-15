@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,6 +15,12 @@ namespace ClanServer.Controllers.Core
     [ApiController, Route("core")]
     public class FacilityController : ControllerBase
     {
+        [HttpPost("{model}/facility/get")]
+        public ActionResult<EamuseXrpcData> Get2([FromBody] EamuseXrpcData data)
+        {
+            return Get(data);
+        }
+
         [HttpPost, XrpcCall("facility.get")]
         public ActionResult<EamuseXrpcData> Get([FromBody] EamuseXrpcData data)
         {

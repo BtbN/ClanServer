@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +13,12 @@ namespace ClanServer.Controllers.Core
     [ApiController, Route("core")]
     public class PcbEventController : ControllerBase
     {
+        [HttpPost("{model}/pcbevent/put")]
+        public ActionResult<EamuseXrpcData> Put2([FromBody] EamuseXrpcData data)
+        {
+            return Put(data);
+        }
+
         [HttpPost, XrpcCall("pcbevent.put")]
         public ActionResult<EamuseXrpcData> Put([FromBody] EamuseXrpcData data)
         {

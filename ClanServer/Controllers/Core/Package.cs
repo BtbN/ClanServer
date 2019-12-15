@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +13,12 @@ namespace ClanServer.Controllers.Core
     [ApiController, Route("core")]
     public class PackageController : ControllerBase
     {
+        [HttpPost("{model}/package/list")]
+        public ActionResult<EamuseXrpcData> List2([FromBody] EamuseXrpcData data)
+        {
+            return List(data);
+        }
+
         [HttpPost, XrpcCall("package.list")]
         public ActionResult<EamuseXrpcData> List([FromBody] EamuseXrpcData data)
         {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +13,12 @@ namespace ClanServer.Controllers.Core
     [ApiController, Route("core")]
     public class MessageController : ControllerBase
     {
+        [HttpPost("{model}/message/get")]
+        public ActionResult<EamuseXrpcData> Get2([FromBody] EamuseXrpcData data)
+        {
+            return Get(data);
+        }
+
         [HttpPost, XrpcCall("message.get")]
         public ActionResult<EamuseXrpcData> Get([FromBody] EamuseXrpcData data)
         {

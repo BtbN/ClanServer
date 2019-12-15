@@ -22,6 +22,12 @@ namespace ClanServer.Controllers.Core
             this.ctx = ctx;
         }
 
+        [HttpPost("{model}/cardmng/inquire")]
+        public ActionResult<EamuseXrpcData> Inquire2([FromBody] EamuseXrpcData data)
+        {
+            return Inquire(data);
+        }
+
         [HttpPost, XrpcCall("cardmng.inquire")]
         public ActionResult<EamuseXrpcData> Inquire([FromBody] EamuseXrpcData data)
         {
@@ -54,6 +60,12 @@ namespace ClanServer.Controllers.Core
             return data;
         }
 
+        [HttpPost("{model}/cardmng/authpass")]
+        public Task<ActionResult<EamuseXrpcData>> Authpass2([FromBody] EamuseXrpcData data)
+        {
+            return Authpass(data);
+        }
+
         [HttpPost, XrpcCall("cardmng.authpass")]
         public async Task<ActionResult<EamuseXrpcData>> Authpass([FromBody] EamuseXrpcData data)
         {
@@ -77,6 +89,12 @@ namespace ClanServer.Controllers.Core
             )));
 
             return data;
+        }
+
+        [HttpPost("{model}/cardmng/getrefid")]
+        public Task<ActionResult<EamuseXrpcData>> GetRefId2([FromBody] EamuseXrpcData data)
+        {
+            return GetRefId(data);
         }
 
         [HttpPost, XrpcCall("cardmng.getrefid")]

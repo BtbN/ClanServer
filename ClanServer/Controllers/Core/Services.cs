@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +13,12 @@ namespace ClanServer.Controllers.Core
     [ApiController, Route("core")]
     public class ServicesController : ControllerBase
     {
+        [HttpPost("{model}/services/get")]
+        public ActionResult<EamuseXrpcData> Get2([FromBody] EamuseXrpcData data, string model)
+        {
+            return Get(data, model);
+        }
+
         [HttpPost, XrpcCall("services.get")]
         public ActionResult<EamuseXrpcData> Get([FromBody] EamuseXrpcData data, [FromQuery] string model)
         {
@@ -48,6 +54,18 @@ namespace ClanServer.Controllers.Core
                 };
 
                 modelUrl = url + "/L44/8";
+            }
+            else if (model.StartsWith("L44:J:B:A:2018"))
+            {
+                modelItems = new[]
+                {
+                    "local",
+                    "local2",
+                    "lobby",
+                    "lobby2"
+                };
+
+                modelUrl = url + "/L44/9";
             }
             else
             {
